@@ -339,6 +339,13 @@ body{
   font-weight:700;letter-spacing:1px;
 }
 .member-hcp{font-size:12px;color:var(--ink-muted);margin-top:6px}
+.member-skill-badge{
+  animation:fadeInUp 0.5s ease;
+}
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
 
 /* ─── RULES ─── */
 .rules-container{max-width:900px;margin:0 auto}
@@ -1424,6 +1431,9 @@ tr:hover td{background:rgba(26,92,58,.02)}
       <button class="sidebar-item" onclick="switchPage('calculator',this)">
         <span class="sidebar-icon">🧮</span>自动计算
       </button>
+      <button class="sidebar-item" onclick="switchPage('matches-manage',this)">
+        <span class="sidebar-icon">📊</span>赛事管理
+      </button>
       <button class="sidebar-item" onclick="switchPage('finance',this)">
         <span class="sidebar-icon">💰</span>财务管理
       </button>
@@ -1564,24 +1574,43 @@ window.addEventListener('DOMContentLoaded', ()=>{
 });
 
 function animateCounters(){
-  const now = new Date();
-  const founded = new Date('2017-05-01');
-  const years = Math.floor((now - founded) / (365.25*24*3600*1000));
+  const currentYear = new Date().getFullYear();
+  const foundedYear = 2017;
+  const years = currentYear - foundedYear;
+  
   document.getElementById('stat-years').textContent = years;
-  document.getElementById('stat-members').textContent = '50+';
+  document.getElementById('stat-members').textContent = STORE.members.length > 0 ? STORE.members.length : '50+';
 }
 
 function renderPublicMembers(){
   const grid = document.getElementById('members-grid');
-  grid.innerHTML = STORE.members.map(m=>`
-    <div class="member-card${m.isNew?' new-member':''}">
+  
+  // 根据差点确定技术等级
+  function getSkillLevel(handicap){
+    const hcp = parseInt(handicap) || 0;
+    if(hcp <= 10) {
+      return { label: '高手', color: '#c0392b', emoji: '🏆' };
+    } else if(hcp <= 27) {
+      return { label: '中流', color: '#f39c12', emoji: '⚡' };
+    } else {
+      return { label: '三轮车', color: '#16a085', emoji: '🚲' };
+    }
+  }
+  
+  grid.innerHTML = STORE.members.map(m=>{
+    const level = getSkillLevel(m.handicap);
+    return `
+    <div class="member-card">
       <div class="member-avatar">${m.name.charAt(0)}</div>
       <div class="member-name">${m.name}</div>
       ${m.role?`<div class="member-role">${m.role}</div>`:''}
-      ${m.isNew?`<div class="member-new-badge">2023新队员</div>`:''}
       <div class="member-hcp">差点 ${m.handicap}</div>
+      <div class="member-skill-badge" style="background:${level.color};color:#fff;font-size:11px;padding:4px 10px;border-radius:12px;margin-top:6px;font-weight:600;display:inline-flex;align-items:center;gap:4px">
+        <span>${level.emoji}</span>
+        <span>${level.label}</span>
+      </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderPublicMatches(){
@@ -2129,7 +2158,15 @@ const pages = {
 
   dashboard(){
     const totalMatches = STORE.matches.length;
-    const newMembers = STORE.members.filter(m=>m.isNew).length;
+    
+    // 统计技术等级
+    const experts = STORE.members.filter(m => parseInt(m.handicap) <= 10).length;
+    const intermediate = STORE.members.filter(m => {
+      const hcp = parseInt(m.handicap);
+      return hcp > 10 && hcp <= 27;
+    }).length;
+    const beginners = STORE.members.filter(m => parseInt(m.handicap) > 27).length;
+    
     return `
     <div class="fade-in">
       <div class="page-header">
@@ -2138,30 +2175,35 @@ const pages = {
       </div>
       <div class="stats-row">
         <div class="stat-box"><div class="stat-box-num serif">${STORE.members.length}</div><div class="stat-box-label">正式队员</div></div>
-        <div class="stat-box"><div class="stat-box-num serif">${newMembers}</div><div class="stat-box-label">2023新队员</div></div>
+        <div class="stat-box" style="border-left-color:#c0392b"><div class="stat-box-num serif" style="color:#c0392b">${experts}</div><div class="stat-box-label">🏆 高手</div></div>
+        <div class="stat-box" style="border-left-color:#f39c12"><div class="stat-box-num serif" style="color:#f39c12">${intermediate}</div><div class="stat-box-label">⚡ 中流</div></div>
+        <div class="stat-box" style="border-left-color:#16a085"><div class="stat-box-num serif" style="color:#16a085">${beginners}</div><div class="stat-box-label">🚲 三轮车</div></div>
+      </div>
+      <div class="stats-row" style="margin-top:16px">
         <div class="stat-box"><div class="stat-box-num serif">${totalMatches}</div><div class="stat-box-label">已录入赛事</div></div>
+        <div class="stat-box"><div class="stat-box-num serif">${STORE.courses.length}</div><div class="stat-box-label">球场足迹</div></div>
         <div class="stat-box" style="border-left-color:var(--gold)"><div class="stat-box-num serif" style="color:var(--gold)">200</div><div class="stat-box-label">球场目标</div></div>
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">⚡</span>快速操作</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
           <button class="btn btn-green" onclick="switchPage('scores',document.querySelectorAll('.sidebar-item')[2])">📥 录入新赛事成绩</button>
-          <button class="btn btn-gold" onclick="switchPage('calculator',document.querySelectorAll('.sidebar-item')[3])">🧮 运行自动计算</button>
+          <button class="btn btn-gold" onclick="switchPage('calculator',document.querySelectorAll('.sidebar-item')[4])">🧮 运行自动计算</button>
           <button class="btn btn-ghost" onclick="switchPage('members',document.querySelectorAll('.sidebar-item')[1])">👥 管理队员信息</button>
         </div>
       </div>
       <div class="card" style="background:linear-gradient(135deg,var(--green),var(--green-mid));color:#fff;border:none">
-        <div style="font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;margin-bottom:16px">V2.0 新功能</div>
+        <div style="font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;margin-bottom:16px">V3.0 新功能</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <div style="background:rgba(255,255,255,.12);padding:16px;border-radius:8px">
-            <div style="font-size:22px;margin-bottom:8px">📊</div>
-            <div style="font-weight:700;margin-bottom:4px">Excel智能导入</div>
-            <div style="font-size:12px;opacity:.8">上传成绩单Excel，一键导入所有队员成绩</div>
+            <div style="font-size:22px;margin-bottom:8px">🏌️</div>
+            <div style="font-weight:700;margin-bottom:4px">18洞标准杆配置</div>
+            <div style="font-size:12px;opacity:.8">支持每洞独立标准杆,精确计算小鸟老鹰</div>
           </div>
           <div style="background:rgba(255,255,255,.12);padding:16px;border-radius:8px">
-            <div style="font-size:22px;margin-bottom:8px">📸</div>
-            <div style="font-weight:700;margin-bottom:4px">图片OCR识别</div>
-            <div style="font-size:12px;opacity:.8">上传成绩照片，AI自动识别并录入数据</div>
+            <div style="font-size:22px;margin-bottom:8px">👥</div>
+            <div style="font-weight:700;margin-bottom:4px">队员自动导入</div>
+            <div style="font-size:12px;opacity:.8">Excel成绩单中的队员自动添加到系统</div>
           </div>
         </div>
       </div>
@@ -2190,6 +2232,7 @@ const pages = {
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">👥</span>队员列表（${STORE.members.length}人）</div>
+        <div id="members-notice" style="display:none"></div>
         <input class="form-input" style="margin-bottom:16px" placeholder="搜索队员姓名…" oninput="filterMembers(this.value)">
         <div class="table-wrap">
           <table id="members-table">
@@ -2321,6 +2364,94 @@ const pages = {
     </div>`;
   },
 
+  'matches-manage'(){
+    const matches = STORE.matches.sort((a,b) => b.date.localeCompare(a.date)); // 按日期倒序
+    return `
+    <div class="fade-in">
+      <div class="page-header">
+        <div class="page-title serif">赛事管理</div>
+        <div class="page-desc">查看、编辑、删除所有赛事记录</div>
+      </div>
+      
+      ${matches.length === 0 
+        ? `<div class="card">
+            <div class="notice notice-info">
+              <span>ℹ️</span>
+              <span>暂无赛事记录，请前往"智能录入"页面添加</span>
+            </div>
+          </div>`
+        : `<div class="card">
+            <div class="card-title">
+              <span class="card-icon">📊</span>
+              <span>全部赛事 (${matches.length}场)</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:50px">#</th>
+                    <th>赛事名称</th>
+                    <th>日期</th>
+                    <th>球场</th>
+                    <th style="text-align:center">标准杆</th>
+                    <th style="text-align:center">参赛人数</th>
+                    <th style="text-align:center">状态</th>
+                    <th style="text-align:center">已计算</th>
+                    <th style="text-align:center;width:200px">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${matches.map((m, i) => `
+                  <tr>
+                    <td style="color:var(--ink-muted)">${i+1}</td>
+                    <td>
+                      <div style="font-weight:600;color:var(--ink)">${m.name}</div>
+                      <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">${m.type === 'annual' ? '年度开杆赛' : '常规例赛'}</div>
+                    </td>
+                    <td>${m.date}${m.time ? ' ' + m.time : ''}</td>
+                    <td style="color:var(--ink-muted)">${m.course || '-'}</td>
+                    <td style="text-align:center;font-weight:700;color:var(--green)">
+                      Par ${m.par || 72}
+                      ${m.holePars && m.holePars.length === 18 ? '<div style="font-size:10px;color:var(--ink-muted)">已配置</div>' : '<div style="font-size:10px;color:#e67e22">默认</div>'}
+                    </td>
+                    <td style="text-align:center;font-size:15px;font-weight:600">${m.scores.length}</td>
+                    <td style="text-align:center">
+                      ${m.published 
+                        ? '<span class="badge badge-green">已发布</span>' 
+                        : '<span class="badge badge-gray">未发布</span>'}
+                    </td>
+                    <td style="text-align:center">
+                      ${m.calcResult 
+                        ? '<span style="color:var(--green)">✓</span>' 
+                        : '<span style="color:var(--ink-muted)">-</span>'}
+                    </td>
+                    <td style="text-align:center">
+                      <div style="display:flex;gap:6px;justify-content:center">
+                        <button class="btn btn-ghost btn-sm" onclick="viewMatchDetail(${m.id})" title="查看详情">👁️</button>
+                        <button class="btn btn-ghost btn-sm" onclick="togglePublish(${m.id})" title="${m.published ? '取消发布' : '发布'}">
+                          ${m.published ? '📤' : '📥'}
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="editMatchPars(${m.id})" title="编辑标准杆">✏️</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteMatch(${m.id})" title="删除">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`
+      }
+      
+      <!-- 详情模态框 -->
+      <div id="match-detail-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;overflow-y:auto;padding:20px" onclick="if(event.target===this)closeMatchDetail()">
+        <div style="max-width:900px;margin:40px auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2)" onclick="event.stopPropagation()">
+          <div id="match-detail-content"></div>
+        </div>
+      </div>
+    </div>`;
+  },
+
   calculator(){
     return `
     <div class="fade-in">
@@ -2436,10 +2567,39 @@ function initMembersPage(){
   renderMembersTable(STORE.members);
 }
 function renderMembersTable(list){
-  document.getElementById('members-tbody').innerHTML = list.map(m=>`
-    <tr id="mrow-${m.id}">
-      <td><strong>${m.name}</strong>${m.isNew?` <span class="badge badge-gold">新</span>`:''}</td>
-      <td>${m.handicap}</td>
+  const needsHandicap = list.filter(m => m.handicap === 0 || m.handicap === '0');
+  
+  // 根据差点确定技术等级
+  function getSkillLevel(handicap){
+    const hcp = parseInt(handicap) || 0;
+    if(hcp <= 10) {
+      return { label: '🏆 高手', color: '#c0392b' };
+    } else if(hcp <= 27) {
+      return { label: '⚡ 中流', color: '#f39c12' };
+    } else {
+      return { label: '🚲 三轮车', color: '#16a085' };
+    }
+  }
+  
+  document.getElementById('members-tbody').innerHTML = list.map(m=>{
+    const isNewOrZeroHandicap = m.handicap === 0 || m.handicap === '0';
+    const level = getSkillLevel(m.handicap);
+    
+    return `
+    <tr id="mrow-${m.id}" ${isNewOrZeroHandicap ? 'style="background:#fff9e6"' : ''}>
+      <td>
+        <strong>${m.name}</strong>
+        ${isNewOrZeroHandicap ? ' <span class="badge" style="background:#f39c12;color:#fff">待完善</span>' : ''}
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:${isNewOrZeroHandicap?'700':'600'};color:${isNewOrZeroHandicap?'#e67e22':'inherit'}">
+            ${m.handicap}
+          </span>
+          ${!isNewOrZeroHandicap ? `<span class="badge" style="background:${level.color};color:#fff;font-size:10px;padding:2px 6px">${level.label}</span>` : ''}
+        </div>
+        ${isNewOrZeroHandicap ? ' <span style="font-size:11px;color:#e67e22">← 需补充</span>' : ''}
+      </td>
       <td>${m.joinDate||'-'}</td>
       <td>${m.role?`<span class="badge badge-green">${m.role}</span>`:'-'}</td>
       <td><span class="badge badge-green">正式队员</span></td>
@@ -2447,7 +2607,25 @@ function renderMembersTable(list){
         <button class="btn btn-ghost btn-sm" onclick="editMember(${m.id})">编辑</button>
         <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteMember(${m.id})">删除</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+  
+  // 如果有需要补充差点的队员,显示提示
+  if(needsHandicap.length > 0){
+    const notice = document.getElementById('members-notice');
+    if(notice){
+      notice.style.display = 'block';
+      notice.innerHTML = `
+        <div class="notice notice-warn" style="margin-bottom:16px">
+          <span>⚠️</span>
+          <span>发现 <strong>${needsHandicap.length}</strong> 位队员的差点为0,请点击"编辑"补充正确的差点信息(黄色高亮显示)</span>
+        </div>
+      `;
+    }
+  } else {
+    const notice = document.getElementById('members-notice');
+    if(notice) notice.style.display = 'none';
+  }
 }
 function filterMembers(q){
   renderMembersTable(STORE.members.filter(m=>m.name.includes(q)));
@@ -2674,12 +2852,30 @@ function parseExcelRows(rows){
   console.log('[Excel解析] 18洞成绩列:', hasHoleScores ? '已检测到' : '未检测到', holeColumns);
   
   const scores=[];
+  const newMembers = []; // 记录新增的队员
+  
   for(const row of rows){
     const rawName=String(row[keys.name]||'').trim();
     if(!rawName||rawName==='nan')continue;
-    const member=STORE.members.find(m=>m.name===rawName||m.name.includes(rawName)||rawName.includes(m.name));
+    let member=STORE.members.find(m=>m.name===rawName||m.name.includes(rawName)||rawName.includes(m.name));
     const gross=parseInt(keys.gross?row[keys.gross]:0)||0;
     if(gross<50||gross>200)continue;
+    
+    // 如果队员不存在,自动添加到队员列表
+    if(!member){
+      const newMemberId = Date.now() + Math.floor(Math.random() * 1000);
+      member = {
+        id: newMemberId,
+        name: rawName,
+        handicap: 0, // 默认差点0,需要管理员后续修改
+        joinDate: new Date().toISOString().split('T')[0],
+        role: '队员',
+        status: 'active'
+      };
+      STORE.members.push(member);
+      newMembers.push(rawName);
+      console.log('[Excel解析] 自动添加新队员:', rawName);
+    }
     
     // 提取18洞成绩
     const holeScores = [];
@@ -2707,6 +2903,32 @@ function parseExcelRows(rows){
       penalties:{absence:false,cancelLate:false,noUniform:false,withdrawal:false,noBetting:false}
     });
   }
+  
+  // 如果添加了新队员,保存数据并提示
+  if(newMembers.length > 0){
+    saveStore();
+    console.log('[Excel解析] 共自动添加', newMembers.length, '位新队员:', newMembers.join(', '));
+    
+    // 创建一个带跳转按钮的详细提示
+    window.newMembersAdded = {
+      count: newMembers.length,
+      names: newMembers
+    };
+    
+    // 延迟显示提示,确保成功提示先显示
+    setTimeout(() => {
+      const msg = `自动添加了${newMembers.length}位新队员: ${newMembers.join('、')}`;
+      showToast(msg, 'success');
+      
+      // 再延迟显示详细提示框
+      setTimeout(() => {
+        if(confirm(`📋 队员管理提醒\n\n刚刚自动添加了 ${newMembers.length} 位新队员到系统:\n${newMembers.map((n,i)=>`${i+1}. ${n}`).join('\n')}\n\n这些队员的差点默认为0,需要您补充正确的差点信息。\n\n是否立即前往"队员管理"页面补充?`)){
+          switchPage('members', document.querySelectorAll('.sidebar-item')[1]);
+        }
+      }, 2000);
+    }, 1500);
+  }
+  
   return scores;
 }
 
@@ -3269,6 +3491,178 @@ function publishMatch(matchId){
   renderPublicMatches();
   showToast('✅ 已发布到官网赛事记录');
 }
+
+// ═══════════════════════════════════════════
+//  MATCHES MANAGEMENT
+// ═══════════════════════════════════════════
+
+function viewMatchDetail(matchId){
+  const match = STORE.matches.find(m => m.id === matchId);
+  if(!match) return;
+  
+  const holePars = match.holePars || Array(18).fill(4);
+  const modal = document.getElementById('match-detail-modal');
+  const content = document.getElementById('match-detail-content');
+  
+  content.innerHTML = `
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+        <div>
+          <h2 style="font-size:24px;font-weight:700;margin:0 0 8px 0">${match.name}</h2>
+          <div style="font-size:14px;color:var(--ink-muted)">
+            📅 ${match.date} ${match.time || ''} · 📍 ${match.course || '未填写'} · 👥 ${match.scores.length}人
+          </div>
+        </div>
+        <button onclick="closeMatchDetail()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--ink-muted)">×</button>
+      </div>
+      
+      <div style="margin-bottom:20px;padding:16px;background:var(--green-light);border-radius:8px">
+        <div style="font-weight:600;margin-bottom:12px">18洞标准杆配置 (总Par: ${match.par || 72})</div>
+        <div style="display:grid;grid-template-columns:repeat(18,1fr);gap:6px">
+          ${holePars.map((par, i) => `
+            <div style="text-align:center;padding:8px;background:#fff;border-radius:4px">
+              <div style="font-size:10px;color:var(--ink-muted);margin-bottom:4px">${i+1}</div>
+              <div style="font-size:16px;font-weight:700;color:${par===3?'#e67e22':par===5?'#e74c3c':'var(--green)'}">${par}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <div style="margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:12px">参赛成绩</div>
+        <div style="max-height:400px;overflow-y:auto">
+          <table style="width:100%;font-size:13px">
+            <thead style="position:sticky;top:0;background:#fff">
+              <tr style="border-bottom:2px solid var(--border)">
+                <th style="padding:8px;text-align:left">排名</th>
+                <th style="padding:8px;text-align:left">姓名</th>
+                <th style="padding:8px;text-align:center">总杆</th>
+                <th style="padding:8px;text-align:center">差点</th>
+                <th style="padding:8px;text-align:center">净杆</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[...match.scores].sort((a,b) => a.grossScore - b.grossScore).map((s, i) => `
+                <tr style="border-bottom:1px solid var(--border)">
+                  <td style="padding:8px">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}</td>
+                  <td style="padding:8px;font-weight:${i<3?'600':'normal'}">${s.playerName}</td>
+                  <td style="padding:8px;text-align:center;font-weight:700;color:${i===0?'#059669':'var(--green)'}">${s.grossScore}</td>
+                  <td style="padding:8px;text-align:center;color:var(--ink-muted)">${s.handicap}</td>
+                  <td style="padding:8px;text-align:center;font-weight:600">${s.netScore}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      ${match.calcResult ? `
+        <div style="padding:16px;background:var(--bg);border-radius:8px">
+          <div style="font-weight:600;margin-bottom:12px">计算结果</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="text-align:center;padding:12px;background:#fff;border-radius:6px">
+              <div style="font-size:12px;color:var(--ink-muted);margin-bottom:4px">总奖金</div>
+              <div style="font-size:20px;font-weight:700;color:var(--green)">¥${match.calcResult.totalAward.toLocaleString()}</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:#fff;border-radius:6px">
+              <div style="font-size:12px;color:var(--ink-muted);margin-bottom:4px">总罚款</div>
+              <div style="font-size:20px;font-weight:700;color:#c0392b">¥${match.calcResult.totalPenalty.toLocaleString()}</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:#fff;border-radius:6px">
+              <div style="font-size:12px;color:var(--ink-muted);margin-bottom:4px">慈善基金</div>
+              <div style="font-size:20px;font-weight:700;color:#f39c12">¥${match.calcResult.totalPenalty.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  modal.style.display = 'block';
+}
+
+function closeMatchDetail(){
+  document.getElementById('match-detail-modal').style.display = 'none';
+}
+
+function togglePublish(matchId){
+  const match = STORE.matches.find(m => m.id === matchId);
+  if(!match) return;
+  
+  match.published = !match.published;
+  saveStore();
+  
+  if(match.published) {
+    renderPublicMatches();
+  }
+  
+  showToast(match.published ? '已发布到赛事记录' : '已取消发布', 'success');
+  switchPage('matches-manage', document.querySelector('.sidebar-item[onclick*="matches-manage"]'));
+}
+
+function editMatchPars(matchId){
+  const match = STORE.matches.find(m => m.id === matchId);
+  if(!match) return;
+  
+  const holePars = match.holePars || Array(18).fill(4);
+  const currentDisplay = holePars.join(', ');
+  
+  const input = prompt(
+    `修改《${match.name}》的18洞标准杆\n\n当前配置:\n${currentDisplay}\n总Par: ${holePars.reduce((s,p)=>s+p,0)}\n\n请输入18个数字(3-5),用逗号分隔:`,
+    currentDisplay
+  );
+  
+  if(input === null) return;
+  
+  const newPars = input.split(',').map(s => parseInt(s.trim())).filter(n => n >= 3 && n <= 5);
+  
+  if(newPars.length !== 18) {
+    alert('⚠️ 请输入完整的18个洞的标准杆(每个3-5)');
+    return;
+  }
+  
+  match.holePars = newPars;
+  match.par = newPars.reduce((sum, p) => sum + p, 0);
+  
+  // 如果已经计算过,清除计算结果
+  if(match.calcResult) {
+    if(confirm('修改标准杆后需要重新计算奖罚,是否清除当前计算结果?')) {
+      match.calcResult = null;
+    }
+  }
+  
+  saveStore();
+  showToast(`标准杆已更新: Par ${match.par}`, 'success');
+  switchPage('matches-manage', document.querySelector('.sidebar-item[onclick*="matches-manage"]'));
+}
+
+function deleteMatch(matchId){
+  const match = STORE.matches.find(m => m.id === matchId);
+  if(!match) return;
+  
+  if(!confirm(`确定要删除赛事《${match.name}》吗?\n\n此操作不可恢复!`)) return;
+  
+  // 二次确认
+  const confirmText = match.name;
+  const userInput = prompt(`请输入赛事名称确认删除:\n${confirmText}`);
+  
+  if(userInput !== confirmText) {
+    alert('❌ 赛事名称不匹配,取消删除');
+    return;
+  }
+  
+  STORE.matches = STORE.matches.filter(m => m.id !== matchId);
+  saveStore();
+  
+  // 如果赛事已发布,刷新公开页面
+  if(match.published) {
+    renderPublicMatches();
+  }
+  
+  showToast('已删除赛事: ' + match.name, 'success');
+  switchPage('matches-manage', document.querySelector('.sidebar-item[onclick*="matches-manage"]'));
+}
+
 
 function exportReport(matchId){
   const m=STORE.matches.find(x=>x.id===matchId);
