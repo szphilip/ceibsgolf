@@ -1503,12 +1503,28 @@ try {
     if(d.members) STORE.members = d.members;
     // 只有当localStorage中有matches且不为空时才覆盖
     if(d.matches && d.matches.length > 0) {
-      // 确保所有matches都有published字段和par字段
-      STORE.matches = d.matches.map(m => ({
-        ...m, 
-        published: m.published !== false,
-        par: m.par || 72  // 为旧数据添加默认标准杆
-      }));
+      // 确保所有matches都有published字段和标准杆数据
+      STORE.matches = d.matches.map(m => {
+        // 为旧数据添加默认标准杆
+        if(!m.holePars || m.holePars.length !== 18) {
+          // 生成标准72杆配置: 4个Par3, 10个Par4, 4个Par5
+          const defaultPars = Array(18).fill(4);
+          defaultPars[1] = 3; // 洞2: Par3
+          defaultPars[4] = 3; // 洞5: Par3
+          defaultPars[10] = 3; // 洞11: Par3
+          defaultPars[14] = 3; // 洞15: Par3
+          defaultPars[2] = 5; // 洞3: Par5
+          defaultPars[8] = 5; // 洞9: Par5
+          defaultPars[11] = 5; // 洞12: Par5
+          defaultPars[17] = 5; // 洞18: Par5
+          m.holePars = defaultPars;
+          m.par = 72;
+        }
+        return {
+          ...m, 
+          published: m.published !== false
+        };
+      });
     }
     if(d.courses) STORE.courses = d.courses;
     if(d.gallery) STORE.gallery = d.gallery;
@@ -2204,8 +2220,42 @@ const pages = {
           </div>
           <div class="form-group"><label class="form-label">比赛日期 *</label><input class="form-input" id="s-date" type="date"></div>
           <div class="form-group"><label class="form-label">开球时间</label><input class="form-input" id="s-time" type="time"></div>
-          <div class="form-group"><label class="form-label">球场标准杆 *</label><input class="form-input" id="s-par" type="number" value="72" min="54" max="90" placeholder="通常为72"></div>
           <div class="form-group full"><label class="form-label">球场名称</label><input class="form-input" id="s-course" placeholder="如：苏州太湖高尔夫球场"></div>
+        </div>
+        
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <label class="form-label" style="margin:0">18洞标准杆 *</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-ghost btn-sm" onclick="setStandardPar(72)" style="font-size:12px">72杆(标准)</button>
+              <button class="btn btn-ghost btn-sm" onclick="setStandardPar(71)" style="font-size:12px">71杆</button>
+              <button class="btn btn-ghost btn-sm" onclick="resetHolePars()" style="font-size:12px">🔄 重置</button>
+            </div>
+          </div>
+          <div class="notice notice-info" style="margin-bottom:12px">
+            <span>ℹ️</span>
+            <span>请输入每洞的标准杆(Par 3/4/5)，用于计算小鸟、老鹰等奖罚</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-bottom:8px">
+            ${Array.from({length:9},(v,i)=>`
+              <div>
+                <label style="font-size:11px;color:var(--ink-muted);display:block;margin-bottom:4px;text-align:center">洞${i+1}</label>
+                <input class="form-input hole-par-input" id="hole-par-${i+1}" type="number" min="3" max="5" value="4" style="text-align:center;padding:6px;font-size:13px">
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:8px">
+            ${Array.from({length:9},(v,i)=>`
+              <div>
+                <label style="font-size:11px;color:var(--ink-muted);display:block;margin-bottom:4px;text-align:center">洞${i+10}</label>
+                <input class="form-input hole-par-input" id="hole-par-${i+10}" type="number" min="3" max="5" value="4" style="text-align:center;padding:6px;font-size:13px">
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:12px;padding:10px;background:var(--green-light);border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:var(--ink-muted)">总标准杆:</span>
+            <span id="total-par-display" style="font-size:18px;font-weight:700;color:var(--green)">72</span>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -2276,7 +2326,7 @@ const pages = {
     <div class="fade-in">
       <div class="page-header">
         <div class="page-title serif">自动计算引擎</div>
-        <div class="page-desc">根据队则自动计算每场比赛的奖励和罚款</div>
+        <div class="page-desc">根据队则和每洞标准杆自动计算奖励和罚款</div>
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">🏌️</span>选择赛事</div>
@@ -2290,15 +2340,18 @@ const pages = {
                 </select>
                 <button class="btn btn-green" onclick="runCalculation()">🧮 开始计算</button>
               </div>
-              <div id="match-par-display" style="display:none;margin-top:12px;padding:12px;background:var(--green-light);border-radius:6px;border:1px solid var(--green)">
-                <div style="display:flex;align-items:center;justify-content:space-between">
-                  <div style="font-size:13px;color:var(--ink)">
-                    <span style="color:var(--ink-muted)">球场标准杆:</span> 
-                    <span id="current-par-value" style="font-weight:700;color:var(--green);font-size:16px;margin-left:8px">72</span>
+              <div id="match-par-display" style="display:none;margin-top:16px">
+                <div style="padding:16px;background:var(--green-light);border-radius:8px;border:1px solid var(--green)">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                    <div style="font-size:14px;color:var(--ink)">
+                      <span style="color:var(--ink-muted)">球场标准杆:</span> 
+                      <span id="current-par-value" style="font-weight:700;color:var(--green);font-size:18px;margin-left:8px">72</span>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="editHolePars()" style="font-size:12px">✏️ 修改</button>
                   </div>
-                  <button class="btn btn-ghost btn-sm" onclick="editMatchPar()" style="font-size:12px">✏️ 修改</button>
+                  <div id="hole-pars-grid" style="display:grid;grid-template-columns:repeat(18,1fr);gap:6px;margin-top:12px"></div>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-top:10px">💡 系统将根据每洞标准杆自动计算小鸟(-1)、老鹰(-2)、Double Par(2倍)等</div>
                 </div>
-                <div style="font-size:11px;color:var(--ink-muted);margin-top:6px">💡 小鸟(-1)、老鹰(-2)等奖励会根据此标准杆自动计算</div>
               </div>
              </div>`}
       </div>
@@ -2443,7 +2496,10 @@ function editMember(id){
 let importedScores = [];
 
 function initScoresPage(){
-  // nothing extra needed
+  // 初始化标准杆输入框监听器
+  setTimeout(() => {
+    initParInputListeners();
+  }, 100);
 }
 
 function switchTab(tab, btn){
@@ -2454,6 +2510,78 @@ function switchTab(tab, btn){
 }
 
 // Excel
+// ═══════════════════════════════════════════
+//  SCORES PAGE - HELPER FUNCTIONS
+// ═══════════════════════════════════════════
+
+// 监听标准杆输入变化,自动更新总杆数
+function initParInputListeners(){
+  document.querySelectorAll('.hole-par-input').forEach(input => {
+    input.addEventListener('input', updateTotalPar);
+  });
+  updateTotalPar(); // 初始化显示
+}
+
+function updateTotalPar(){
+  let total = 0;
+  for(let i = 1; i <= 18; i++){
+    const val = parseInt(document.getElementById(`hole-par-${i}`)?.value) || 4;
+    total += val;
+  }
+  const display = document.getElementById('total-par-display');
+  if(display) display.textContent = total;
+  return total;
+}
+
+function setStandardPar(targetTotal){
+  // 设置标准的Par配置
+  // 72杆: 4个Par3(洞2,5,11,15), 10个Par4, 4个Par5(洞3,9,12,18)
+  // 71杆: 类似但少一个Par5
+  const par72Config = {
+    2:3, 5:3, 11:3, 15:3,  // 4个Par3
+    3:5, 9:5, 12:5, 18:5   // 4个Par5
+    // 其余10洞为Par4
+  };
+  
+  const par71Config = {
+    2:3, 5:3, 11:3, 15:3,  // 4个Par3
+    3:5, 9:5, 18:5         // 3个Par5
+    // 其余11洞为Par4
+  };
+  
+  const config = targetTotal === 72 ? par72Config : par71Config;
+  
+  for(let i = 1; i <= 18; i++){
+    const input = document.getElementById(`hole-par-${i}`);
+    if(input) {
+      input.value = config[i] || 4;
+    }
+  }
+  updateTotalPar();
+  showToast(`已设置为标准${targetTotal}杆配置`, 'success');
+}
+
+function resetHolePars(){
+  for(let i = 1; i <= 18; i++){
+    const input = document.getElementById(`hole-par-${i}`);
+    if(input) input.value = 4;
+  }
+  updateTotalPar();
+  showToast('已重置为全部Par4', 'success');
+}
+
+function getHolePars(){
+  const pars = [];
+  for(let i = 1; i <= 18; i++){
+    const val = parseInt(document.getElementById(`hole-par-${i}`)?.value) || 4;
+    pars.push(val);
+  }
+  return pars;
+}
+
+// ═══════════════════════════════════════════
+//  EXCEL IMPORT
+// ═══════════════════════════════════════════
 function handleExcelDrop(e){
   e.preventDefault();
   document.getElementById('excel-zone').classList.remove('drag-over');
@@ -2531,6 +2659,20 @@ function parseExcelRows(rows){
     console.error('[Excel解析] 未找到姓名列!');
     return[];
   }
+  
+  // 检测18洞成绩列(列标题为数字1-18)
+  const holeColumns = {};
+  for(let i = 1; i <= 18; i++){
+    const colKey = Object.keys(sample).find(k => {
+      const val = String(k).trim();
+      return val === String(i) || val === `洞${i}` || val === `H${i}`;
+    });
+    if(colKey) holeColumns[i] = colKey;
+  }
+  
+  const hasHoleScores = Object.keys(holeColumns).length >= 18;
+  console.log('[Excel解析] 18洞成绩列:', hasHoleScores ? '已检测到' : '未检测到', holeColumns);
+  
   const scores=[];
   for(const row of rows){
     const rawName=String(row[keys.name]||'').trim();
@@ -2538,6 +2680,17 @@ function parseExcelRows(rows){
     const member=STORE.members.find(m=>m.name===rawName||m.name.includes(rawName)||rawName.includes(m.name));
     const gross=parseInt(keys.gross?row[keys.gross]:0)||0;
     if(gross<50||gross>200)continue;
+    
+    // 提取18洞成绩
+    const holeScores = [];
+    if(hasHoleScores){
+      for(let i = 1; i <= 18; i++){
+        const colKey = holeColumns[i];
+        const score = colKey ? parseInt(row[colKey]) : 0;
+        holeScores.push(score || 0);
+      }
+    }
+    
     scores.push({
       id:Date.now()+Math.random(),
       playerId:member?String(member.id):'',
@@ -2545,6 +2698,7 @@ function parseExcelRows(rows){
       grossScore:gross,
       handicap:member?member.handicap:0,
       netScore:gross-(member?member.handicap:0),
+      holeScores: holeScores, // 新增:18洞成绩数组
       birdies:parseInt(keys.birdie?row[keys.birdie]:0)||0,
       eagles:parseInt(keys.eagle?row[keys.eagle]:0)||0,
       holeInOnes:parseInt(keys.holeInOne?row[keys.holeInOne]:0)||0,
@@ -2763,11 +2917,13 @@ function saveScores(){
   
   const name=document.getElementById('s-name').value.trim();
   const date=document.getElementById('s-date').value;
-  const par=parseInt(document.getElementById('s-par').value) || 72;
+  const holePars = getHolePars(); // 获取18洞标准杆数组
+  const totalPar = holePars.reduce((sum, p) => sum + p, 0);
   
   console.log('[保存成绩] 赛事名称:', name);
   console.log('[保存成绩] 赛事日期:', date);
-  console.log('[保存成绩] 标准杆:', par);
+  console.log('[保存成绩] 18洞标准杆:', holePars);
+  console.log('[保存成绩] 总标准杆:', totalPar);
   console.log('[保存成绩] 成绩数据数量:', importedScores.length);
   
   if(!name||!date){
@@ -2778,10 +2934,10 @@ function saveScores(){
     return;
   }
   
-  if(!par || par < 54 || par > 90){
-    console.error('[保存成绩] 标准杆无效:', par);
-    showToast('请填写有效的标准杆(54-90)', 'error');
-    alert('⚠️ 请填写有效的标准杆(通常为72)');
+  if(!holePars || holePars.length !== 18){
+    console.error('[保存成绩] 标准杆数据无效');
+    showToast('请填写完整的18洞标准杆', 'error');
+    alert('⚠️ 请填写完整的18洞标准杆');
     return;
   }
   
@@ -2799,7 +2955,8 @@ function saveScores(){
       time:document.getElementById('s-time').value,
       course:document.getElementById('s-course').value,
       type:document.getElementById('s-type').value,
-      par: par,  // 保存标准杆
+      par: totalPar,  // 总标准杆
+      holePars: holePars,  // 18洞标准杆数组
       scores:JSON.parse(JSON.stringify(importedScores)),
       calcResult:null,
       published:true  // 自动发布到赛事记录
@@ -2826,10 +2983,11 @@ function saveScores(){
     document.getElementById('s-date').value = '';
     document.getElementById('s-time').value = '';
     document.getElementById('s-course').value = '';
-    document.getElementById('s-par').value = '72';
+    // 重置标准杆为默认值
+    setStandardPar(72);
     
     console.log('[保存成绩] ✅ 保存成功!');
-    showToast(`成绩已保存并发布! 共${match.scores.length}人`, 'success');
+    showToast(`成绩已保存并发布! 共${match.scores.length}人, Par ${totalPar}`, 'success');
     
     // 使用confirm替代alert,给用户选择
     if(confirm('✅ 成绩保存成功并已发布到赛事记录！\n\n是否立即前往"自动计算"页面进行奖惩计算？')){
@@ -2863,12 +3021,24 @@ function showMatchPar(){
   const match = STORE.matches.find(m => m.id === matchId);
   if(!match) return;
   
-  const par = match.par || 72;
-  document.getElementById('current-par-value').textContent = par;
+  const holePars = match.holePars || Array(18).fill(4);
+  const totalPar = holePars.reduce((sum, p) => sum + p, 0);
+  
+  document.getElementById('current-par-value').textContent = totalPar;
+  
+  // 渲染18洞标准杆网格
+  const grid = document.getElementById('hole-pars-grid');
+  grid.innerHTML = holePars.map((par, i) => `
+    <div style="text-align:center;padding:6px;background:#fff;border-radius:4px;border:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink-muted);margin-bottom:2px">${i+1}</div>
+      <div style="font-size:14px;font-weight:700;color:${par===3?'#e67e22':par===5?'#e74c3c':'var(--green)'}">${par}</div>
+    </div>
+  `).join('');
+  
   display.style.display = 'block';
 }
 
-function editMatchPar(){
+function editHolePars(){
   const sel = document.getElementById('calc-match-sel');
   const matchId = parseInt(sel.value);
   if(!matchId) return;
@@ -2876,27 +3046,34 @@ function editMatchPar(){
   const match = STORE.matches.find(m => m.id === matchId);
   if(!match) return;
   
-  const currentPar = match.par || 72;
-  const newPar = prompt(`修改球场标准杆\n\n当前标准杆: ${currentPar}\n请输入新的标准杆(54-90):`, currentPar);
+  const holePars = match.holePars || Array(18).fill(4);
+  const currentDisplay = holePars.join(', ');
   
-  if(newPar === null) return; // 用户取消
+  const input = prompt(
+    `修改18洞标准杆(用逗号分隔)\n\n当前配置:\n${currentDisplay}\n总Par: ${holePars.reduce((s,p)=>s+p,0)}\n\n请输入18个数字(3-5),用逗号分隔:`,
+    currentDisplay
+  );
   
-  const parNum = parseInt(newPar);
-  if(isNaN(parNum) || parNum < 54 || parNum > 90) {
-    alert('⚠️ 请输入有效的标准杆(54-90)');
+  if(input === null) return; // 用户取消
+  
+  const newPars = input.split(',').map(s => parseInt(s.trim())).filter(n => n >= 3 && n <= 5);
+  
+  if(newPars.length !== 18) {
+    alert('⚠️ 请输入完整的18个洞的标准杆(每个3-5)');
     return;
   }
   
-  match.par = parNum;
+  match.holePars = newPars;
+  match.par = newPars.reduce((sum, p) => sum + p, 0);
   saveStore();
   
-  document.getElementById('current-par-value').textContent = parNum;
-  showToast(`标准杆已更新为 ${parNum}`, 'success');
+  showMatchPar(); // 刷新显示
+  showToast(`标准杆已更新: Par ${match.par}`, 'success');
   
   // 更新下拉框显示
   const option = sel.querySelector(`option[value="${matchId}"]`);
   if(option) {
-    option.textContent = `${match.name}（${match.date}）· ${match.scores.length}人 · Par ${parNum}`;
+    option.textContent = `${match.name}（${match.date}）· ${match.scores.length}人 · Par ${match.par}`;
   }
 }
 
@@ -2917,10 +3094,11 @@ function runCalculation(){
 
 function calculateMatch(match){
   const r=STORE.rules;
-  const par = match.par || 72; // 获取标准杆
-  const result={matchId:match.id,matchName:match.name,awards:[],totalAward:0,totalPenalty:0,details:[],par:par};
+  const holePars = match.holePars || Array(18).fill(4); // 18洞标准杆
+  const totalPar = holePars.reduce((sum, p) => sum + p, 0);
+  const result={matchId:match.id,matchName:match.name,awards:[],totalAward:0,totalPenalty:0,details:[],par:totalPar,holePars:holePars};
 
-  console.log(`[计算] 赛事: ${match.name}, 标准杆: ${par}`);
+  console.log(`[计算] 赛事: ${match.name}, 标准杆配置:`, holePars, '总Par:', totalPar);
 
   match.scores.forEach(score=>{
     const d={
@@ -2930,17 +3108,81 @@ function calculateMatch(match){
     };
     const gross=+score.grossScore;
 
-    // Awards - 使用已录入的小鸟、老鹰数据
-    if(score.holeInOnes>0){const a=r.awards.holeInOne.amount*score.holeInOnes;d.awards.push({name:'一杆进洞×'+score.holeInOnes,amount:a});d.totalAward+=a;}
-    if(score.eagles>0){const a=r.awards.eagle.amount*score.eagles;d.awards.push({name:'抓老鹰×'+score.eagles,amount:a});d.totalAward+=a;}
-    if(score.birdies>0){const a=r.awards.birdie.amount*score.birdies;d.awards.push({name:'抓小鸟×'+score.birdies,amount:a});d.totalAward+=a;}
+    // 如果有每洞成绩,根据标准杆计算奖罚
+    if(score.holeScores && score.holeScores.length === 18){
+      console.log(`[计算] ${score.playerName} 每洞成绩:`, score.holeScores);
+      
+      let birdies = 0, eagles = 0, holeInOnes = 0, doublePars = 0, tripleBogeys = 0;
+      
+      for(let i = 0; i < 18; i++){
+        const holeScore = score.holeScores[i];
+        const holePar = holePars[i];
+        const diff = holeScore - holePar;
+        
+        // 奖励统计
+        if(holeScore === 1) {
+          holeInOnes++; // 一杆进洞
+        } else if(diff === -2) {
+          eagles++; // 老鹰(低于标准杆2杆)
+        } else if(diff === -1) {
+          birdies++; // 小鸟(低于标准杆1杆)
+        }
+        
+        // 罚款统计
+        if(holeScore >= holePar * 2) {
+          doublePars++; // Double Par(达到或超过标准杆2倍)
+        } else if(diff === 3) {
+          tripleBogeys++; // 加三(高于标准杆3杆)
+        }
+      }
+      
+      console.log(`[计算] ${score.playerName} - 小鸟:${birdies}, 老鹰:${eagles}, 一杆进洞:${holeInOnes}, Double Par:${doublePars}, 加三:${tripleBogeys}`);
+      
+      // 计算奖励金额
+      if(holeInOnes > 0){
+        const a = r.awards.holeInOne.amount * holeInOnes;
+        d.awards.push({name:'一杆进洞×'+holeInOnes,amount:a});
+        d.totalAward += a;
+      }
+      if(eagles > 0){
+        const a = r.awards.eagle.amount * eagles;
+        d.awards.push({name:'抓老鹰×'+eagles,amount:a});
+        d.totalAward += a;
+      }
+      if(birdies > 0){
+        const a = r.awards.birdie.amount * birdies;
+        d.awards.push({name:'抓小鸟×'+birdies,amount:a});
+        d.totalAward += a;
+      }
+      
+      // 计算罚款金额
+      // Double Par规则: 总杆>=95时才罚款,且有上限
+      if(gross >= 95 && doublePars > 0){
+        const a = Math.min(r.penalties.doublePar.amount * doublePars, r.penalties.doublePar.limit);
+        d.penalties.push({name:`Double Par×${doublePars}`,amount:a,note:'上限¥500'});
+        d.totalPenalty += a;
+      }
+      
+      // Triple Bogey规则: 总杆<95时才罚款
+      if(gross < 95 && tripleBogeys > 0){
+        const a = r.penalties.tripleBogey.amount * tripleBogeys;
+        d.penalties.push({name:`加三×${tripleBogeys}`,amount:a});
+        d.totalPenalty += a;
+      }
+      
+    } else {
+      // 如果没有每洞成绩,使用Excel中已统计的数据(旧逻辑兼容)
+      console.log(`[计算] ${score.playerName} 使用已统计数据`);
+      
+      if(score.holeInOnes>0){const a=r.awards.holeInOne.amount*score.holeInOnes;d.awards.push({name:'一杆进洞×'+score.holeInOnes,amount:a});d.totalAward+=a;}
+      if(score.eagles>0){const a=r.awards.eagle.amount*score.eagles;d.awards.push({name:'抓老鹰×'+score.eagles,amount:a});d.totalAward+=a;}
+      if(score.birdies>0){const a=r.awards.birdie.amount*score.birdies;d.awards.push({name:'抓小鸟×'+score.birdies,amount:a});d.totalAward+=a;}
 
-    // Penalties - Double Par (gross>=95)
-    if(gross>=95&&score.doublePars>0){const a=Math.min(r.penalties.doublePar.amount*score.doublePars,r.penalties.doublePar.limit);d.penalties.push({name:`Double Par×${score.doublePars}`,amount:a,note:'上限¥500'});d.totalPenalty+=a;}
-    // Triple Bogey (gross<95)
-    if(gross<95&&score.tripleBogeys>0){const a=r.penalties.tripleBogey.amount*score.tripleBogeys;d.penalties.push({name:`加三×${score.tripleBogeys}`,amount:a});d.totalPenalty+=a;}
+      if(gross>=95&&score.doublePars>0){const a=Math.min(r.penalties.doublePar.amount*score.doublePars,r.penalties.doublePar.limit);d.penalties.push({name:`Double Par×${score.doublePars}`,amount:a,note:'上限¥500'});d.totalPenalty+=a;}
+      if(gross<95&&score.tripleBogeys>0){const a=r.penalties.tripleBogey.amount*score.tripleBogeys;d.penalties.push({name:`加三×${score.tripleBogeys}`,amount:a});d.totalPenalty+=a;}
+    }
 
-    // Discipline penalties
+    // 纪律罚款(不依赖每洞成绩)
     const DPENS={absence:'缺席',cancelLate:'临时取消',noUniform:'未着队服',withdrawal:'中途退赛',noBetting:'未下注'};
     Object.entries(DPENS).forEach(([k,label])=>{
       if(score.penalties&&score.penalties[k]){
@@ -2955,7 +3197,7 @@ function calculateMatch(match){
     result.details.push(d);
   });
 
-  // Award champions
+  // 冠军评选
   if(match.scores.length>1){
     const byGross=[...match.scores].sort((a,b)=>+a.grossScore - +b.grossScore);
     const byNet=[...match.scores].sort((a,b)=>a.netScore-b.netScore);
