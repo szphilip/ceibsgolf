@@ -4620,7 +4620,7 @@ function saveBalance() {
   STORE.finance.balance = balance;
   saveStore();
   closeModal();
-  PAGES['finance-admin']();
+  switchPage('finance');
   showToast('✅ 余额已更新');
 }
 
@@ -4739,7 +4739,7 @@ function saveMonthlyRecord() {
   STORE.finance.monthlyRecords.push(record);
   saveStore();
   closeModal();
-  PAGES['finance-admin']();
+  switchPage('finance');
   showToast('✅ 月度记录已添加');
 }
 
@@ -4849,7 +4849,7 @@ function updateMonthlyRecord() {
   
   saveStore();
   closeModal();
-  PAGES['finance-admin']();
+  switchPage('finance');
   showToast('✅ 记录已更新');
 }
 
@@ -4857,7 +4857,7 @@ function deleteMonthlyRecord(index) {
   if(!confirm('确定要删除这条月度财务记录吗？')) return;
   STORE.finance.monthlyRecords.splice(index, 1);
   saveStore();
-  PAGES['finance-admin']();
+  switchPage('finance');
   showToast('✅ 已删除');
 }
 
