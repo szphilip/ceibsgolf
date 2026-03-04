@@ -6,11 +6,9 @@
 <title>中欧苏州高尔夫球队</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
   --ink: #1a1a1a;
@@ -2650,50 +2648,32 @@ const pages = {
 
   finance(){
     const f = STORE.finance;
-    return `
-    <div class="fade-in">
-      <div class="page-header">
-        <div class="page-title serif">财务管理</div>
-        <div class="page-desc">球队财务收支统计与管理</div>
-      </div>
-      
-      <div class="card" style="margin-bottom:24px">
-        <div class="card-title"><span class="card-icon">💰</span>余额管理</div>
-        <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
-          <div class="stat-box" style="border-left-color:#c9a84c">
-            <div class="stat-box-num serif">¥${f.balance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            <div class="stat-box-label">本次余额</div>
-            <button class="btn btn-ghost btn-sm" style="margin-top:8px;font-size:12px" onclick="editBalance()">✏️ 编辑余额</button>
-          </div>
-          <div class="stat-box" style="border-left-color:var(--ink-muted)">
-            <div class="stat-box-num serif" style="color:var(--ink-muted)">¥${f.lastBalance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            <div class="stat-box-label">上次余额</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" style="margin-bottom:24px">
-        <div class="card-title">
-          <span class="card-icon">📅</span>本月球队经费收支情况
-          <button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="addMonthlyRecord()">+ 添加月度记录</button>
-        </div>
-        ${f.monthlyRecords.length === 0 
-          ? '<div class="notice notice-info"><span>💡</span><span>暂无月度财务记录，点击"添加月度记录"开始管理财务</span></div>'
-          : '<div class="table-wrap"><table><thead><tr><th style="width:120px">月份</th><th>收入</th><th>支出</th><th>净额</th><th style="width:100px">操作</th></tr></thead><tbody>' + f.monthlyRecords.map((r,i)=>'<tr><td><strong>'+r.month+'</strong></td><td style="color:var(--green)">¥'+r.income.total.toLocaleString()+'</td><td style="color:#c0392b">¥'+r.expenses.total.toLocaleString()+'</td><td style="color:'+(r.income.total-r.expenses.total>=0?'var(--green)':'#c0392b')+';font-weight:600">'+(r.income.total-r.expenses.total>=0?'+':'')+'¥'+(r.income.total-r.expenses.total).toLocaleString()+'</td><td><button class="btn-icon" onclick="viewMonthlyDetail('+i+')" title="查看详情">👁️</button><button class="btn-icon" onclick="editMonthlyRecord('+i+')" title="编辑">✏️</button><button class="btn-icon" onclick="deleteMonthlyRecord('+i+')" title="删除">🗑️</button></td></tr>').join('') + '</tbody></table></div>'
-        }
-      </div>
-      
-      <div class="card">
-        <div class="card-title">
-          <span class="card-icon">🏆</span>本场比赛奖罚情况
-          <button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="manageMatchFinancials()">管理赛事财务</button>
-        </div>
-        ${STORE.matches.length === 0
-          ? '<div class="notice notice-warn"><span>⚠️</span><span>暂无赛事数据</span></div>'
-          : '<div class="form-grid" style="margin-bottom:20px"><select class="form-select" id="finance-match-sel" onchange="showMatchFinancial()"><option value="">-- 请选择赛事 --</option>'+STORE.matches.map(m=>'<option value="'+m.id+'">'+m.name+'（'+m.date+'）</option>').join('')+'</select></div><div id="match-financial-display"></div>'
-        }
-      </div>
-    </div>`;
+    let html = '<div class="fade-in"><div class="page-header"><div class="page-title serif">财务管理</div><div class="page-desc">球队财务收支统计与管理</div></div>';
+    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">💰</span>余额管理</div><div class="stats-row" style="grid-template-columns:repeat(2,1fr)"><div class="stat-box" style="border-left-color:#c9a84c"><div class="stat-box-num serif">¥'+f.balance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">本次余额</div><button class="btn btn-ghost btn-sm" style="margin-top:8px;font-size:12px" onclick="editBalance()">✏️ 编辑余额</button></div><div class="stat-box" style="border-left-color:var(--ink-muted)"><div class="stat-box-num serif" style="color:var(--ink-muted)">¥'+f.lastBalance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">上次余额</div></div></div></div>';
+    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">📅</span>本月球队经费收支情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="addMonthlyRecord()">+ 添加月度记录</button></div>';
+    if(f.monthlyRecords.length === 0) {
+      html += '<div class="notice notice-info"><span>💡</span><span>暂无月度财务记录，点击"添加月度记录"开始管理财务</span></div>';
+    } else {
+      html += '<div class="table-wrap"><table><thead><tr><th style="width:120px">月份</th><th>收入</th><th>支出</th><th>净额</th><th style="width:100px">操作</th></tr></thead><tbody>';
+      f.monthlyRecords.forEach((r,i)=>{
+        const net = r.income.total - r.expenses.total;
+        html += '<tr><td><strong>'+r.month+'</strong></td><td style="color:var(--green)">¥'+r.income.total.toLocaleString()+'</td><td style="color:#c0392b">¥'+r.expenses.total.toLocaleString()+'</td><td style="color:'+(net>=0?'var(--green)':'#c0392b')+';font-weight:600">'+(net>=0?'+':'')+'¥'+net.toLocaleString()+'</td><td><button class="btn-icon" onclick="viewMonthlyDetail('+i+')" title="查看详情">👁️</button><button class="btn-icon" onclick="editMonthlyRecord('+i+')" title="编辑">✏️</button><button class="btn-icon" onclick="deleteMonthlyRecord('+i+')" title="删除">🗑️</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+    html += '<div class="card"><div class="card-title"><span class="card-icon">🏆</span>本场比赛奖罚情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="manageMatchFinancials()">管理赛事财务</button></div>';
+    if(STORE.matches.length === 0) {
+      html += '<div class="notice notice-warn"><span>⚠️</span><span>暂无赛事数据</span></div>';
+    } else {
+      html += '<div class="form-grid" style="margin-bottom:20px"><select class="form-select" id="finance-match-sel" onchange="showMatchFinancial()"><option value="">-- 请选择赛事 --</option>';
+      STORE.matches.forEach(m=>{
+        html += '<option value="'+m.id+'">'+m.name+'（'+m.date+'）</option>';
+      });
+      html += '</select></div><div id="match-financial-display"></div>';
+    }
+    html += '</div></div>';
+    return html;
   },
 
   'rules-admin'(){
@@ -4523,15 +4503,10 @@ function showToast(msg, type='success'){
   window.toastTimer=setTimeout(()=>t.style.opacity='0',3000);
 }
 
-</script>
-</body>
-</html>
-
 // Financial Management Functions
 function editBalance() {
   showModal('<div style="padding:24px;max-width:500px"><h3 style="margin:0 0 20px 0">编辑余额</h3><div class="form-grid"><div class="form-group"><label>上次余额</label><input type="number" class="form-input" id="edit-last-balance" step="0.01" value="'+STORE.finance.lastBalance+'"></div><div class="form-group"><label>本次余额</label><input type="number" class="form-input" id="edit-balance" step="0.01" value="'+STORE.finance.balance+'"></div></div><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveBalance()">保存</button></div></div>');
 }
-
 function saveBalance() {
   const lastBalance = parseFloat(document.getElementById('edit-last-balance').value);
   const balance = parseFloat(document.getElementById('edit-balance').value);
@@ -4543,30 +4518,25 @@ function saveBalance() {
   switchPage('finance');
   showToast('✅ 余额已更新');
 }
-
 function addMonthlyRecord() {
   showModal('<div style="padding:24px;max-width:700px"><h3 style="margin:0 0 20px 0">添加月度财务记录</h3><div class="form-group" style="margin-bottom:20px"><label>月份</label><input type="month" class="form-input" id="monthly-month" value="'+(new Date().toISOString().slice(0,7))+'"></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">收入项目</label><button class="btn btn-sm btn-ghost" onclick="addIncomeItem()">+ 添加</button></div><div id="income-items"></div></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">支出项目</label><button class="btn btn-sm btn-ghost" onclick="addExpenseItem()">+ 添加</button></div><div id="expense-items"></div></div><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveMonthlyRecord()">保存</button></div></div>');
   addIncomeItem();
   addExpenseItem();
 }
-
 function addIncomeItem() {
   const container = document.getElementById('income-items');
   const id = Date.now() + Math.random();
   container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
-
 function addExpenseItem() {
   const container = document.getElementById('expense-items');
   const id = Date.now() + Math.random();
   container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><input type="text" class="form-input" placeholder="备注" data-type="note"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
-
 function removeItem(id) {
   const item = document.querySelector('[data-item-id="'+id+'"]');
   if(item) item.remove();
 }
-
 function saveMonthlyRecord() {
   const month = document.getElementById('monthly-month').value;
   if(!month) { alert('请选择月份'); return; }
@@ -4599,7 +4569,6 @@ function saveMonthlyRecord() {
   switchPage('finance');
   showToast('✅ 月度记录已添加');
 }
-
 function editMonthlyRecord(index) {
   const r = STORE.finance.monthlyRecords[index];
   if(!r) return;
@@ -4615,7 +4584,6 @@ function editMonthlyRecord(index) {
   html += '</div></div><input type="hidden" id="edit-record-index" value="'+index+'"><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="updateMonthlyRecord()">保存</button></div></div>';
   showModal(html);
 }
-
 function updateMonthlyRecord() {
   const index = parseInt(document.getElementById('edit-record-index').value);
   const month = document.getElementById('edit-monthly-month').value;
@@ -4649,7 +4617,6 @@ function updateMonthlyRecord() {
   switchPage('finance');
   showToast('✅ 记录已更新');
 }
-
 function deleteMonthlyRecord(index) {
   if(!confirm('确定要删除这条月度财务记录吗？')) return;
   STORE.finance.monthlyRecords.splice(index, 1);
@@ -4657,7 +4624,6 @@ function deleteMonthlyRecord(index) {
   switchPage('finance');
   showToast('✅ 已删除');
 }
-
 function viewMonthlyDetail(index) {
   const r = STORE.finance.monthlyRecords[index];
   if(!r) return;
@@ -4687,7 +4653,6 @@ function viewMonthlyDetail(index) {
   html += '<div style="display:flex;justify-content:flex-end;margin-top:24px"><button class="btn btn-green" onclick="closeModal()">关闭</button></div></div>';
   showModal(html);
 }
-
 function showMatchFinancial() {
   const matchId = document.getElementById('finance-match-sel').value;
   if(!matchId) {
@@ -4738,7 +4703,6 @@ function showMatchFinancial() {
   html += '</div>';
   document.getElementById('match-financial-display').innerHTML = html;
 }
-
 function editMatchFinancial(matchId) {
   const match = STORE.matches.find(m => m.id == matchId);
   if(!match) return;
@@ -4756,19 +4720,16 @@ function editMatchFinancial(matchId) {
   html += '<input type="hidden" id="edit-match-id" value="'+matchId+'"><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveMatchFinancial()">保存</button></div></div>';
   showModal(html);
 }
-
 function addMatchAward() {
   const container = document.getElementById('match-awards');
   const id = 'award-' + Date.now() + Math.random();
   container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="获奖者" data-type="name"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
-
 function addMatchPenalty() {
   const container = document.getElementById('match-penalties');
   const id = 'penalty-' + Date.now() + Math.random();
   container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="被罚者" data-type="name"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><input type="text" class="form-input" placeholder="原因" data-type="reason"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
-
 function saveMatchFinancial() {
   const matchId = document.getElementById('edit-match-id').value;
   const notes = document.getElementById('match-notes').value.trim();
@@ -4793,7 +4754,6 @@ function saveMatchFinancial() {
   showMatchFinancial();
   showToast('✅ 赛事财务已保存');
 }
-
 function manageMatchFinancials() {
   if(STORE.matches.length === 0) { alert('暂无赛事数据'); return; }
   let html = '<div style="padding:24px;max-width:800px"><h3 style="margin:0 0 20px 0">管理赛事财务</h3><div class="table-wrap"><table><thead><tr><th>赛事名称</th><th>日期</th><th style="width:80px">状态</th><th style="width:100px">操作</th></tr></thead><tbody>';
@@ -4804,7 +4764,6 @@ function manageMatchFinancials() {
   html += '</tbody></table></div><div style="display:flex;justify-content:flex-end;margin-top:24px"><button class="btn btn-green" onclick="closeModal()">关闭</button></div></div>';
   showModal(html);
 }
-
 function deleteMatchFinancial(matchId) {
   if(!confirm('确定要删除这场赛事的财务记录吗？')) return;
   delete STORE.finance.matchFinancials[matchId];
