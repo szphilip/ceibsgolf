@@ -6,9 +6,11 @@
 <title>中欧苏州高尔夫球队</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
+</script>
 <style>
 :root {
   --ink: #1a1a1a;
@@ -1521,33 +1523,11 @@ const STORE = {
       noBetting:{name:"未下注",amount:1000}
     }
   },
-  
   finance: {
-    balance: 128279.02,  // 当前余额（可手动编辑）
-    lastBalance: 128279.02,  // 上次余额
-    monthlyRecords: [
-      // 每月财务记录示例
-      // {
-      //   month: '2025-01',
-      //   income: {total: 1200, items: [{desc: '留款', amount: 1200}]},
-      //   expenses: {total: 56623, items: [
-      //     {desc: '奖励', amount: 100, note: '李玉琢'},
-      //     {desc: '球费补贴', amount: 5390, note: '11位*490元/位'},
-      //     {desc: '大巴车', amount: 4400, note: '包车3天'},
-      //     {desc: '9号晚宴', amount: 3151},
-      //     {desc: '队秘费用', amount: 5082, note: '午餐98、房费1400、机票3584'},
-      //     {desc: 'HONMA新队服', amount: 38500, note: '55件*700元/件'}
-      //   ]}
-      // }
-    ],
-    matchFinancials: {
-      // 赛事级别的财务记录（可覆盖自动计算）
-      // 'match-id': {
-      //   awards: [{name: '李玉琢', amount: 100}],
-      //   penalties: [{name: '曹海峰', amount: 100}, ...],
-      //   notes: '本次赛事奖罚说明'
-      // }
-    }
+    balance: 128279.02,
+    lastBalance: 128279.02,
+    monthlyRecords: [],
+    matchFinancials: {}
   }
 };
 
@@ -2677,7 +2657,6 @@ const pages = {
         <div class="page-desc">球队财务收支统计与管理</div>
       </div>
       
-      <!-- 余额管理卡片 -->
       <div class="card" style="margin-bottom:24px">
         <div class="card-title"><span class="card-icon">💰</span>余额管理</div>
         <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
@@ -2693,61 +2672,25 @@ const pages = {
         </div>
       </div>
       
-      <!-- 月度财务记录 -->
       <div class="card" style="margin-bottom:24px">
         <div class="card-title">
           <span class="card-icon">📅</span>本月球队经费收支情况
           <button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="addMonthlyRecord()">+ 添加月度记录</button>
         </div>
         ${f.monthlyRecords.length === 0 
-          ? `<div class="notice notice-info"><span>💡</span><span>暂无月度财务记录，点击"添加月度记录"开始管理财务</span></div>`
-          : `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:120px">月份</th>
-                    <th>收入</th>
-                    <th>支出</th>
-                    <th>净额</th>
-                    <th style="width:100px">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${f.monthlyRecords.map((r,i)=>{
-                    const net = r.income.total - r.expenses.total;
-                    return `<tr>
-                      <td><strong>${r.month}</strong></td>
-                      <td style="color:var(--green)">¥${r.income.total.toLocaleString()}</td>
-                      <td style="color:#c0392b">¥${r.expenses.total.toLocaleString()}</td>
-                      <td style="color:${net>=0?'var(--green)':'#c0392b'};font-weight:600">${net>=0?'+':''}¥${net.toLocaleString()}</td>
-                      <td>
-                        <button class="btn-icon" onclick="viewMonthlyDetail(${i})" title="查看详情">👁️</button>
-                        <button class="btn-icon" onclick="editMonthlyRecord(${i})" title="编辑">✏️</button>
-                        <button class="btn-icon" onclick="deleteMonthlyRecord(${i})" title="删除">🗑️</button>
-                      </td>
-                    </tr>`;
-                  }).join('')}
-                </tbody>
-              </table>
-            </div>`
+          ? '<div class="notice notice-info"><span>💡</span><span>暂无月度财务记录，点击"添加月度记录"开始管理财务</span></div>'
+          : '<div class="table-wrap"><table><thead><tr><th style="width:120px">月份</th><th>收入</th><th>支出</th><th>净额</th><th style="width:100px">操作</th></tr></thead><tbody>' + f.monthlyRecords.map((r,i)=>'<tr><td><strong>'+r.month+'</strong></td><td style="color:var(--green)">¥'+r.income.total.toLocaleString()+'</td><td style="color:#c0392b">¥'+r.expenses.total.toLocaleString()+'</td><td style="color:'+(r.income.total-r.expenses.total>=0?'var(--green)':'#c0392b')+';font-weight:600">'+(r.income.total-r.expenses.total>=0?'+':'')+'¥'+(r.income.total-r.expenses.total).toLocaleString()+'</td><td><button class="btn-icon" onclick="viewMonthlyDetail('+i+')" title="查看详情">👁️</button><button class="btn-icon" onclick="editMonthlyRecord('+i+')" title="编辑">✏️</button><button class="btn-icon" onclick="deleteMonthlyRecord('+i+')" title="删除">🗑️</button></td></tr>').join('') + '</tbody></table></div>'
         }
       </div>
       
-      <!-- 赛事奖罚记录 -->
       <div class="card">
         <div class="card-title">
           <span class="card-icon">🏆</span>本场比赛奖罚情况
           <button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="manageMatchFinancials()">管理赛事财务</button>
         </div>
         ${STORE.matches.length === 0
-          ? `<div class="notice notice-warn"><span>⚠️</span><span>暂无赛事数据</span></div>`
-          : `<div class="form-grid" style="margin-bottom:20px">
-              <select class="form-select" id="finance-match-sel" onchange="showMatchFinancial()">
-                <option value="">-- 请选择赛事 --</option>
-                ${STORE.matches.map(m=>`<option value="${m.id}">${m.name}（${m.date}）</option>`).join('')}
-              </select>
-            </div>
-            <div id="match-financial-display"></div>`
+          ? '<div class="notice notice-warn"><span>⚠️</span><span>暂无赛事数据</span></div>'
+          : '<div class="form-grid" style="margin-bottom:20px"><select class="form-select" id="finance-match-sel" onchange="showMatchFinancial()"><option value="">-- 请选择赛事 --</option>'+STORE.matches.map(m=>'<option value="'+m.id+'">'+m.name+'（'+m.date+'）</option>').join('')+'</select></div><div id="match-financial-display"></div>'
         }
       </div>
     </div>`;
@@ -4580,42 +4523,19 @@ function showToast(msg, type='success'){
   window.toastTimer=setTimeout(()=>t.style.opacity='0',3000);
 }
 
-// ═══════════════════════════════════════════
-//  FINANCIAL MANAGEMENT FUNCTIONS
-// ═══════════════════════════════════════════
+</script>
+</body>
+</html>
 
+// Financial Management Functions
 function editBalance() {
-  const currentBalance = STORE.finance.balance;
-  const modal = showModal(`
-    <div style="padding:24px;max-width:500px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">编辑余额</h3>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>上次余额</label>
-          <input type="number" class="form-input" id="edit-last-balance" step="0.01" value="${STORE.finance.lastBalance}">
-        </div>
-        <div class="form-group">
-          <label>本次余额</label>
-          <input type="number" class="form-input" id="edit-balance" step="0.01" value="${currentBalance}">
-        </div>
-      </div>
-      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
-        <button class="btn btn-green" onclick="saveBalance()">保存</button>
-      </div>
-    </div>
-  `);
+  showModal('<div style="padding:24px;max-width:500px"><h3 style="margin:0 0 20px 0">编辑余额</h3><div class="form-grid"><div class="form-group"><label>上次余额</label><input type="number" class="form-input" id="edit-last-balance" step="0.01" value="'+STORE.finance.lastBalance+'"></div><div class="form-group"><label>本次余额</label><input type="number" class="form-input" id="edit-balance" step="0.01" value="'+STORE.finance.balance+'"></div></div><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveBalance()">保存</button></div></div>');
 }
 
 function saveBalance() {
   const lastBalance = parseFloat(document.getElementById('edit-last-balance').value);
   const balance = parseFloat(document.getElementById('edit-balance').value);
-  
-  if(isNaN(lastBalance) || isNaN(balance)) {
-    alert('请输入有效的金额');
-    return;
-  }
-  
+  if(isNaN(lastBalance) || isNaN(balance)) { alert('请输入有效的金额'); return; }
   STORE.finance.lastBalance = lastBalance;
   STORE.finance.balance = balance;
   saveStore();
@@ -4625,39 +4545,7 @@ function saveBalance() {
 }
 
 function addMonthlyRecord() {
-  const modal = showModal(`
-    <div style="padding:24px;max-width:700px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">添加月度财务记录</h3>
-      
-      <div class="form-group" style="margin-bottom:20px">
-        <label>月份</label>
-        <input type="month" class="form-input" id="monthly-month" value="${new Date().toISOString().slice(0,7)}">
-      </div>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">收入项目</label>
-          <button class="btn btn-sm btn-ghost" onclick="addIncomeItem()">+ 添加</button>
-        </div>
-        <div id="income-items"></div>
-      </div>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">支出项目</label>
-          <button class="btn btn-sm btn-ghost" onclick="addExpenseItem()">+ 添加</button>
-        </div>
-        <div id="expense-items"></div>
-      </div>
-      
-      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
-        <button class="btn btn-green" onclick="saveMonthlyRecord()">保存</button>
-      </div>
-    </div>
-  `);
-  
-  // Initialize with one empty item each
+  showModal('<div style="padding:24px;max-width:700px"><h3 style="margin:0 0 20px 0">添加月度财务记录</h3><div class="form-group" style="margin-bottom:20px"><label>月份</label><input type="month" class="form-input" id="monthly-month" value="'+(new Date().toISOString().slice(0,7))+'"></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">收入项目</label><button class="btn btn-sm btn-ghost" onclick="addIncomeItem()">+ 添加</button></div><div id="income-items"></div></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">支出项目</label><button class="btn btn-sm btn-ghost" onclick="addExpenseItem()">+ 添加</button></div><div id="expense-items"></div></div><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveMonthlyRecord()">保存</button></div></div>');
   addIncomeItem();
   addExpenseItem();
 }
@@ -4665,78 +4553,47 @@ function addMonthlyRecord() {
 function addIncomeItem() {
   const container = document.getElementById('income-items');
   const id = Date.now() + Math.random();
-  const itemHtml = `
-    <div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="${id}">
-      <input type="text" class="form-input" placeholder="项目描述（如：留款）" data-type="desc">
-      <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount">
-      <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-    </div>
-  `;
-  container.insertAdjacentHTML('beforeend', itemHtml);
+  container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
 
 function addExpenseItem() {
   const container = document.getElementById('expense-items');
   const id = Date.now() + Math.random();
-  const itemHtml = `
-    <div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="${id}">
-      <input type="text" class="form-input" placeholder="项目描述" data-type="desc">
-      <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount">
-      <input type="text" class="form-input" placeholder="备注（可选）" data-type="note">
-      <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-    </div>
-  `;
-  container.insertAdjacentHTML('beforeend', itemHtml);
+  container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><input type="text" class="form-input" placeholder="备注" data-type="note"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
 
 function removeItem(id) {
-  const item = document.querySelector(`[data-item-id="${id}"]`);
+  const item = document.querySelector('[data-item-id="'+id+'"]');
   if(item) item.remove();
 }
 
 function saveMonthlyRecord() {
   const month = document.getElementById('monthly-month').value;
-  if(!month) {
-    alert('请选择月份');
-    return;
-  }
-  
-  // Collect income items
+  if(!month) { alert('请选择月份'); return; }
   const incomeContainer = document.getElementById('income-items');
   const incomeItems = [];
   let incomeTotal = 0;
-  
   incomeContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const desc = item.querySelector('[data-type="desc"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
     if(desc && !isNaN(amount) && amount > 0) {
-      incomeItems.push({desc, amount});
+      incomeItems.push({desc: desc, amount: amount});
       incomeTotal += amount;
     }
   });
-  
-  // Collect expense items
   const expenseContainer = document.getElementById('expense-items');
   const expenseItems = [];
   let expenseTotal = 0;
-  
   expenseContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const desc = item.querySelector('[data-type="desc"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
     const note = item.querySelector('[data-type="note"]').value.trim();
     if(desc && !isNaN(amount) && amount > 0) {
-      expenseItems.push({desc, amount, note: note || undefined});
+      expenseItems.push({desc: desc, amount: amount, note: note || undefined});
       expenseTotal += amount;
     }
   });
-  
-  const record = {
-    month,
-    income: {total: incomeTotal, items: incomeItems},
-    expenses: {total: expenseTotal, items: expenseItems}
-  };
-  
-  STORE.finance.monthlyRecords.push(record);
+  STORE.finance.monthlyRecords.push({month: month, income: {total: incomeTotal, items: incomeItems}, expenses: {total: expenseTotal, items: expenseItems}});
   saveStore();
   closeModal();
   switchPage('finance');
@@ -4744,109 +4601,49 @@ function saveMonthlyRecord() {
 }
 
 function editMonthlyRecord(index) {
-  const record = STORE.finance.monthlyRecords[index];
-  if(!record) return;
-  
-  const modal = showModal(`
-    <div style="padding:24px;max-width:700px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">编辑月度财务记录</h3>
-      
-      <div class="form-group" style="margin-bottom:20px">
-        <label>月份</label>
-        <input type="month" class="form-input" id="edit-monthly-month" value="${record.month}">
-      </div>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">收入项目</label>
-          <button class="btn btn-sm btn-ghost" onclick="addIncomeItem()">+ 添加</button>
-        </div>
-        <div id="income-items">
-          ${record.income.items.map((item,i)=>{
-            const id = `income-${i}`;
-            return `
-            <div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="${id}">
-              <input type="text" class="form-input" placeholder="项目描述" data-type="desc" value="${item.desc}">
-              <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="${item.amount}">
-              <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">支出项目</label>
-          <button class="btn btn-sm btn-ghost" onclick="addExpenseItem()">+ 添加</button>
-        </div>
-        <div id="expense-items">
-          ${record.expenses.items.map((item,i)=>{
-            const id = `expense-${i}`;
-            return `
-            <div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="${id}">
-              <input type="text" class="form-input" placeholder="项目描述" data-type="desc" value="${item.desc}">
-              <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="${item.amount}">
-              <input type="text" class="form-input" placeholder="备注（可选）" data-type="note" value="${item.note||''}">
-              <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      
-      <input type="hidden" id="edit-record-index" value="${index}">
-      
-      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
-        <button class="btn btn-green" onclick="updateMonthlyRecord()">保存</button>
-      </div>
-    </div>
-  `);
+  const r = STORE.finance.monthlyRecords[index];
+  if(!r) return;
+  let html = '<div style="padding:24px;max-width:700px"><h3 style="margin:0 0 20px 0">编辑月度财务记录</h3><div class="form-group" style="margin-bottom:20px"><label>月份</label><input type="month" class="form-input" id="edit-monthly-month" value="'+r.month+'"></div>';
+  html += '<div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">收入项目</label><button class="btn btn-sm btn-ghost" onclick="addIncomeItem()">+ 添加</button></div><div id="income-items">';
+  r.income.items.forEach((item,i)=>{
+    html += '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="income-'+i+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc" value="'+item.desc+'"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="'+item.amount+'"><button class="btn-icon" onclick="removeItem(\'income-'+i+'\')" style="color:#c0392b">🗑️</button></div>';
+  });
+  html += '</div></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">支出项目</label><button class="btn btn-sm btn-ghost" onclick="addExpenseItem()">+ 添加</button></div><div id="expense-items">';
+  r.expenses.items.forEach((item,i)=>{
+    html += '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="expense-'+i+'"><input type="text" class="form-input" placeholder="项目描述" data-type="desc" value="'+item.desc+'"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="'+item.amount+'"><input type="text" class="form-input" placeholder="备注" data-type="note" value="'+(item.note||'')+'"><button class="btn-icon" onclick="removeItem(\'expense-'+i+'\')" style="color:#c0392b">🗑️</button></div>';
+  });
+  html += '</div></div><input type="hidden" id="edit-record-index" value="'+index+'"><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="updateMonthlyRecord()">保存</button></div></div>';
+  showModal(html);
 }
 
 function updateMonthlyRecord() {
   const index = parseInt(document.getElementById('edit-record-index').value);
   const month = document.getElementById('edit-monthly-month').value;
-  
-  if(!month) {
-    alert('请选择月份');
-    return;
-  }
-  
-  // Collect income items
+  if(!month) { alert('请选择月份'); return; }
   const incomeContainer = document.getElementById('income-items');
   const incomeItems = [];
   let incomeTotal = 0;
-  
   incomeContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const desc = item.querySelector('[data-type="desc"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
     if(desc && !isNaN(amount) && amount > 0) {
-      incomeItems.push({desc, amount});
+      incomeItems.push({desc: desc, amount: amount});
       incomeTotal += amount;
     }
   });
-  
-  // Collect expense items
   const expenseContainer = document.getElementById('expense-items');
   const expenseItems = [];
   let expenseTotal = 0;
-  
   expenseContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const desc = item.querySelector('[data-type="desc"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
     const note = item.querySelector('[data-type="note"]').value.trim();
     if(desc && !isNaN(amount) && amount > 0) {
-      expenseItems.push({desc, amount, note: note || undefined});
+      expenseItems.push({desc: desc, amount: amount, note: note || undefined});
       expenseTotal += amount;
     }
   });
-  
-  STORE.finance.monthlyRecords[index] = {
-    month,
-    income: {total: incomeTotal, items: incomeItems},
-    expenses: {total: expenseTotal, items: expenseItems}
-  };
-  
+  STORE.finance.monthlyRecords[index] = {month: month, income: {total: incomeTotal, items: incomeItems}, expenses: {total: expenseTotal, items: expenseItems}};
   saveStore();
   closeModal();
   switchPage('finance');
@@ -4862,66 +4659,33 @@ function deleteMonthlyRecord(index) {
 }
 
 function viewMonthlyDetail(index) {
-  const record = STORE.finance.monthlyRecords[index];
-  if(!record) return;
-  
-  showModal(`
-    <div style="padding:24px;max-width:600px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">${record.month} 财务详情</h3>
-      
-      <div style="margin-bottom:24px">
-        <div style="font-weight:600;color:var(--green);margin-bottom:12px">📈 收入明细 (总计: ¥${record.income.total.toLocaleString()})</div>
-        ${record.income.items.length === 0 
-          ? '<div style="color:var(--ink-muted);font-size:14px">无收入记录</div>'
-          : `<div class="table-wrap">
-              <table>
-                <thead><tr><th>项目</th><th style="text-align:right">金额</th></tr></thead>
-                <tbody>
-                  ${record.income.items.map(item=>`
-                    <tr>
-                      <td>${item.desc}</td>
-                      <td style="text-align:right;color:var(--green)">¥${item.amount.toLocaleString()}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>`
-        }
-      </div>
-      
-      <div style="margin-bottom:24px">
-        <div style="font-weight:600;color:#c0392b;margin-bottom:12px">📉 支出明细 (总计: ¥${record.expenses.total.toLocaleString()})</div>
-        ${record.expenses.items.length === 0
-          ? '<div style="color:var(--ink-muted);font-size:14px">无支出记录</div>'
-          : `<div class="table-wrap">
-              <table>
-                <thead><tr><th>项目</th><th style="text-align:right">金额</th><th>备注</th></tr></thead>
-                <tbody>
-                  ${record.expenses.items.map(item=>`
-                    <tr>
-                      <td>${item.desc}</td>
-                      <td style="text-align:right;color:#c0392b">¥${item.amount.toLocaleString()}</td>
-                      <td style="color:var(--ink-muted);font-size:13px">${item.note||'-'}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>`
-        }
-      </div>
-      
-      <div style="padding:16px;background:var(--green-light);border-radius:8px;text-align:center">
-        <div style="font-size:14px;color:var(--ink-muted);margin-bottom:4px">本月净额</div>
-        <div style="font-size:28px;font-weight:700;color:${record.income.total - record.expenses.total >= 0 ? 'var(--green)' : '#c0392b'}">
-          ${record.income.total - record.expenses.total >= 0 ? '+' : ''}¥${(record.income.total - record.expenses.total).toLocaleString()}
-        </div>
-      </div>
-      
-      <div style="display:flex;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-green" onclick="closeModal()">关闭</button>
-      </div>
-    </div>
-  `);
+  const r = STORE.finance.monthlyRecords[index];
+  if(!r) return;
+  let html = '<div style="padding:24px;max-width:600px"><h3 style="margin:0 0 20px 0">'+r.month+' 财务详情</h3>';
+  html += '<div style="margin-bottom:24px"><div style="font-weight:600;color:var(--green);margin-bottom:12px">📈 收入明细 (总计: ¥'+r.income.total.toLocaleString()+')</div>';
+  if(r.income.items.length === 0) {
+    html += '<div style="color:var(--ink-muted);font-size:14px">无收入记录</div>';
+  } else {
+    html += '<div class="table-wrap"><table><thead><tr><th>项目</th><th style="text-align:right">金额</th></tr></thead><tbody>';
+    r.income.items.forEach(item=>{
+      html += '<tr><td>'+item.desc+'</td><td style="text-align:right;color:var(--green)">¥'+item.amount.toLocaleString()+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div><div style="margin-bottom:24px"><div style="font-weight:600;color:#c0392b;margin-bottom:12px">📉 支出明细 (总计: ¥'+r.expenses.total.toLocaleString()+')</div>';
+  if(r.expenses.items.length === 0) {
+    html += '<div style="color:var(--ink-muted);font-size:14px">无支出记录</div>';
+  } else {
+    html += '<div class="table-wrap"><table><thead><tr><th>项目</th><th style="text-align:right">金额</th><th>备注</th></tr></thead><tbody>';
+    r.expenses.items.forEach(item=>{
+      html += '<tr><td>'+item.desc+'</td><td style="text-align:right;color:#c0392b">¥'+item.amount.toLocaleString()+'</td><td style="color:var(--ink-muted);font-size:13px">'+(item.note||'-')+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  const net = r.income.total - r.expenses.total;
+  html += '</div><div style="padding:16px;background:var(--green-light);border-radius:8px;text-align:center"><div style="font-size:14px;color:var(--ink-muted);margin-bottom:4px">本月净额</div><div style="font-size:28px;font-weight:700;color:'+(net>=0?'var(--green)':'#c0392b')+'">'+(net>=0?'+':'')+'¥'+net.toLocaleString()+'</div></div>';
+  html += '<div style="display:flex;justify-content:flex-end;margin-top:24px"><button class="btn btn-green" onclick="closeModal()">关闭</button></div></div>';
+  showModal(html);
 }
 
 function showMatchFinancial() {
@@ -4930,31 +4694,19 @@ function showMatchFinancial() {
     document.getElementById('match-financial-display').innerHTML = '';
     return;
   }
-  
   const match = STORE.matches.find(m => m.id == matchId);
   if(!match) return;
-  
   const mf = STORE.finance.matchFinancials[matchId] || {};
   const calcResult = match.calcResult;
-  
-  // Use manual entries if available, otherwise use calculated results
   const awards = mf.awards || (calcResult ? calcResult.awards : []);
   const totalAward = awards.reduce((sum, a) => sum + (a.amount || 0), 0);
-  
-  // For penalties, need to extract from calcResult.details
   let penalties = mf.penalties || [];
   let totalPenalty = 0;
-  
   if(penalties.length === 0 && calcResult && calcResult.details) {
-    // Extract penalties from all players
     calcResult.details.forEach(player => {
       if(player.penalties && player.penalties.length > 0) {
         player.penalties.forEach(p => {
-          penalties.push({
-            name: player.playerName,
-            amount: p.amount,
-            reason: p.name
-          });
+          penalties.push({name: player.playerName, amount: p.amount, reason: p.name});
           totalPenalty += p.amount;
         });
       }
@@ -4962,186 +4714,80 @@ function showMatchFinancial() {
   } else {
     totalPenalty = penalties.reduce((sum, p) => sum + (p.amount || 0), 0);
   }
-  
   const notes = mf.notes || '';
-  
-  document.getElementById('match-financial-display').innerHTML = `
-    <div style="padding:20px;background:var(--cream);border-radius:8px;border:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
-        <div>
-          <h4 style="margin:0 0 8px 0;font-size:18px;font-weight:700">${match.name}</h4>
-          <div style="font-size:13px;color:var(--ink-muted)">${match.date}</div>
-        </div>
-        <button class="btn btn-sm btn-ghost" onclick="editMatchFinancial('${matchId}')">✏️ 编辑</button>
-      </div>
-      
-      <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:20px">
-        <div class="stat-box" style="border-left-color:var(--green)">
-          <div class="stat-box-num serif" style="color:var(--green)">¥${totalAward.toLocaleString()}</div>
-          <div class="stat-box-label">总奖励</div>
-        </div>
-        <div class="stat-box" style="border-left-color:#c0392b">
-          <div class="stat-box-num serif" style="color:#c0392b">¥${totalPenalty.toLocaleString()}</div>
-          <div class="stat-box-label">总罚款</div>
-        </div>
-      </div>
-      
-      ${awards.length > 0 ? `
-        <div style="margin-bottom:16px">
-          <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:8px">🏆 奖励</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            ${awards.map(a => `
-              <div style="padding:6px 12px;background:#fff;border-radius:4px;border:1px solid var(--border)">
-                <span style="font-weight:600">${a.winner || a.name}</span>
-                <span style="color:var(--green);margin-left:8px">+¥${a.amount}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-      
-      ${penalties.length > 0 ? `
-        <div style="margin-bottom:16px">
-          <div style="font-size:14px;font-weight:600;color:#c0392b;margin-bottom:8px">💸 罚款</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            ${penalties.map(p => `
-              <div style="padding:6px 12px;background:#fff;border-radius:4px;border:1px solid var(--border)">
-                <span style="font-weight:600">${p.name}</span>
-                <span style="color:#c0392b;margin-left:8px">-¥${p.amount}</span>
-                ${p.reason ? `<span style="font-size:11px;color:var(--ink-muted);margin-left:4px">(${p.reason})</span>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-      
-      ${notes ? `
-        <div style="padding:12px;background:#fff;border-radius:4px;border:1px solid var(--border)">
-          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:4px">备注说明</div>
-          <div style="font-size:14px;white-space:pre-wrap">${notes}</div>
-        </div>
-      ` : ''}
-    </div>
-  `;
+  let html = '<div style="padding:20px;background:var(--cream);border-radius:8px;border:1px solid var(--border)">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px"><div><h4 style="margin:0 0 8px 0;font-size:18px;font-weight:700">'+match.name+'</h4><div style="font-size:13px;color:var(--ink-muted)">'+match.date+'</div></div><button class="btn btn-sm btn-ghost" onclick="editMatchFinancial(\''+matchId+'\')">✏️ 编辑</button></div>';
+  html += '<div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:20px"><div class="stat-box" style="border-left-color:var(--green)"><div class="stat-box-num serif" style="color:var(--green)">¥'+totalAward.toLocaleString()+'</div><div class="stat-box-label">总奖励</div></div><div class="stat-box" style="border-left-color:#c0392b"><div class="stat-box-num serif" style="color:#c0392b">¥'+totalPenalty.toLocaleString()+'</div><div class="stat-box-label">总罚款</div></div></div>';
+  if(awards.length > 0) {
+    html += '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:8px">🏆 奖励</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+    awards.forEach(a=>{
+      html += '<div style="padding:6px 12px;background:#fff;border-radius:4px;border:1px solid var(--border)"><span style="font-weight:600">'+(a.winner||a.name)+'</span><span style="color:var(--green);margin-left:8px">+¥'+a.amount+'</span></div>';
+    });
+    html += '</div></div>';
+  }
+  if(penalties.length > 0) {
+    html += '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:600;color:#c0392b;margin-bottom:8px">💸 罚款</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+    penalties.forEach(p=>{
+      html += '<div style="padding:6px 12px;background:#fff;border-radius:4px;border:1px solid var(--border)"><span style="font-weight:600">'+p.name+'</span><span style="color:#c0392b;margin-left:8px">-¥'+p.amount+'</span>'+(p.reason?'<span style="font-size:11px;color:var(--ink-muted);margin-left:4px">('+p.reason+')</span>':'')+'</div>';
+    });
+    html += '</div></div>';
+  }
+  if(notes) {
+    html += '<div style="padding:12px;background:#fff;border-radius:4px;border:1px solid var(--border)"><div style="font-size:13px;color:var(--ink-muted);margin-bottom:4px">备注说明</div><div style="font-size:14px;white-space:pre-wrap">'+notes+'</div></div>';
+  }
+  html += '</div>';
+  document.getElementById('match-financial-display').innerHTML = html;
 }
 
 function editMatchFinancial(matchId) {
   const match = STORE.matches.find(m => m.id == matchId);
   if(!match) return;
-  
   const mf = STORE.finance.matchFinancials[matchId] || {awards: [], penalties: [], notes: ''};
-  
-  showModal(`
-    <div style="padding:24px;max-width:700px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">编辑赛事财务 - ${match.name}</h3>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">奖励记录</label>
-          <button class="btn btn-sm btn-ghost" onclick="addMatchAward()">+ 添加</button>
-        </div>
-        <div id="match-awards">
-          ${mf.awards.map((a,i)=>{
-            const id = `award-${i}`;
-            return `
-            <div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="${id}">
-              <input type="text" class="form-input" placeholder="获奖者" data-type="name" value="${a.winner||a.name||''}">
-              <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="${a.amount||0}">
-              <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      
-      <div style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <label style="font-weight:600">罚款记录</label>
-          <button class="btn btn-sm btn-ghost" onclick="addMatchPenalty()">+ 添加</button>
-        </div>
-        <div id="match-penalties">
-          ${mf.penalties.map((p,i)=>{
-            const id = `penalty-${i}`;
-            return `
-            <div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="${id}">
-              <input type="text" class="form-input" placeholder="被罚者" data-type="name" value="${p.name||''}">
-              <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="${p.amount||0}">
-              <input type="text" class="form-input" placeholder="原因（可选）" data-type="reason" value="${p.reason||''}">
-              <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      
-      <div class="form-group" style="margin-bottom:20px">
-        <label>备注说明</label>
-        <textarea class="form-input" id="match-notes" rows="4" placeholder="本场比赛的财务说明...">${mf.notes||''}</textarea>
-      </div>
-      
-      <input type="hidden" id="edit-match-id" value="${matchId}">
-      
-      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
-        <button class="btn btn-green" onclick="saveMatchFinancial()">保存</button>
-      </div>
-    </div>
-  `);
+  let html = '<div style="padding:24px;max-width:700px"><h3 style="margin:0 0 20px 0">编辑赛事财务 - '+match.name+'</h3>';
+  html += '<div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">奖励记录</label><button class="btn btn-sm btn-ghost" onclick="addMatchAward()">+ 添加</button></div><div id="match-awards">';
+  mf.awards.forEach((a,i)=>{
+    html += '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="award-'+i+'"><input type="text" class="form-input" placeholder="获奖者" data-type="name" value="'+(a.winner||a.name||'')+'"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="'+(a.amount||0)+'"><button class="btn-icon" onclick="removeItem(\'award-'+i+'\')" style="color:#c0392b">🗑️</button></div>';
+  });
+  html += '</div></div><div style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-weight:600">罚款记录</label><button class="btn btn-sm btn-ghost" onclick="addMatchPenalty()">+ 添加</button></div><div id="match-penalties">';
+  mf.penalties.forEach((p,i)=>{
+    html += '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="penalty-'+i+'"><input type="text" class="form-input" placeholder="被罚者" data-type="name" value="'+(p.name||'')+'"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount" value="'+(p.amount||0)+'"><input type="text" class="form-input" placeholder="原因" data-type="reason" value="'+(p.reason||'')+'"><button class="btn-icon" onclick="removeItem(\'penalty-'+i+'\')" style="color:#c0392b">🗑️</button></div>';
+  });
+  html += '</div></div><div class="form-group" style="margin-bottom:20px"><label>备注说明</label><textarea class="form-input" id="match-notes" rows="4" placeholder="本场比赛的财务说明...">'+(mf.notes||'')+'</textarea></div>';
+  html += '<input type="hidden" id="edit-match-id" value="'+matchId+'"><div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-green" onclick="saveMatchFinancial()">保存</button></div></div>';
+  showModal(html);
 }
 
 function addMatchAward() {
   const container = document.getElementById('match-awards');
   const id = 'award-' + Date.now() + Math.random();
-  const itemHtml = `
-    <div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="${id}">
-      <input type="text" class="form-input" placeholder="获奖者" data-type="name">
-      <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount">
-      <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-    </div>
-  `;
-  container.insertAdjacentHTML('beforeend', itemHtml);
+  container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="获奖者" data-type="name"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
 
 function addMatchPenalty() {
   const container = document.getElementById('match-penalties');
   const id = 'penalty-' + Date.now() + Math.random();
-  const itemHtml = `
-    <div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="${id}">
-      <input type="text" class="form-input" placeholder="被罚者" data-type="name">
-      <input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount">
-      <input type="text" class="form-input" placeholder="原因（可选）" data-type="reason">
-      <button class="btn-icon" onclick="removeItem('${id}')" style="color:#c0392b">🗑️</button>
-    </div>
-  `;
-  container.insertAdjacentHTML('beforeend', itemHtml);
+  container.insertAdjacentHTML('beforeend', '<div class="form-grid" style="grid-template-columns:2fr 1fr 2fr auto;margin-bottom:8px" data-item-id="'+id+'"><input type="text" class="form-input" placeholder="被罚者" data-type="name"><input type="number" class="form-input" placeholder="金额" step="0.01" data-type="amount"><input type="text" class="form-input" placeholder="原因" data-type="reason"><button class="btn-icon" onclick="removeItem(\''+id+'\')" style="color:#c0392b">🗑️</button></div>');
 }
 
 function saveMatchFinancial() {
   const matchId = document.getElementById('edit-match-id').value;
   const notes = document.getElementById('match-notes').value.trim();
-  
-  // Collect awards
   const awardsContainer = document.getElementById('match-awards');
   const awards = [];
   awardsContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const name = item.querySelector('[data-type="name"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
-    if(name && !isNaN(amount) && amount > 0) {
-      awards.push({name, amount});
-    }
+    if(name && !isNaN(amount) && amount > 0) awards.push({name: name, amount: amount});
   });
-  
-  // Collect penalties
   const penaltiesContainer = document.getElementById('match-penalties');
   const penalties = [];
   penaltiesContainer.querySelectorAll('[data-item-id]').forEach(item => {
     const name = item.querySelector('[data-type="name"]').value.trim();
     const amount = parseFloat(item.querySelector('[data-type="amount"]').value);
     const reason = item.querySelector('[data-type="reason"]').value.trim();
-    if(name && !isNaN(amount) && amount > 0) {
-      penalties.push({name, amount, reason: reason || undefined});
-    }
+    if(name && !isNaN(amount) && amount > 0) penalties.push({name: name, amount: amount, reason: reason || undefined});
   });
-  
-  STORE.finance.matchFinancials[matchId] = {awards, penalties, notes};
+  STORE.finance.matchFinancials[matchId] = {awards: awards, penalties: penalties, notes: notes};
   saveStore();
   closeModal();
   showMatchFinancial();
@@ -5149,53 +4795,14 @@ function saveMatchFinancial() {
 }
 
 function manageMatchFinancials() {
-  if(STORE.matches.length === 0) {
-    alert('暂无赛事数据');
-    return;
-  }
-  
-  showModal(`
-    <div style="padding:24px;max-width:800px">
-      <h3 style="margin:0 0 20px 0;font-size:20px;font-weight:700">管理赛事财务</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>赛事名称</th>
-              <th>日期</th>
-              <th style="width:80px">状态</th>
-              <th style="width:100px">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${STORE.matches.map(m => {
-              const hasFinancial = STORE.finance.matchFinancials[m.id];
-              return `
-              <tr>
-                <td>${m.name}</td>
-                <td>${m.date}</td>
-                <td>
-                  <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;
-                    background:${hasFinancial ? 'var(--green-light)' : 'var(--border)};
-                    color:${hasFinancial ? 'var(--green)' : 'var(--ink-muted)'}">
-                    ${hasFinancial ? '已录入' : '未录入'}
-                  </span>
-                </td>
-                <td>
-                  <button class="btn-icon" onclick="closeModal();editMatchFinancial('${m.id}')" title="编辑">✏️</button>
-                  ${hasFinancial ? `<button class="btn-icon" onclick="deleteMatchFinancial('${m.id}')" title="删除">🗑️</button>` : ''}
-                </td>
-              </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:24px">
-        <button class="btn btn-green" onclick="closeModal()">关闭</button>
-      </div>
-    </div>
-  `);
+  if(STORE.matches.length === 0) { alert('暂无赛事数据'); return; }
+  let html = '<div style="padding:24px;max-width:800px"><h3 style="margin:0 0 20px 0">管理赛事财务</h3><div class="table-wrap"><table><thead><tr><th>赛事名称</th><th>日期</th><th style="width:80px">状态</th><th style="width:100px">操作</th></tr></thead><tbody>';
+  STORE.matches.forEach(m => {
+    const hasFinancial = STORE.finance.matchFinancials[m.id];
+    html += '<tr><td>'+m.name+'</td><td>'+m.date+'</td><td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:'+(hasFinancial?'var(--green-light)':'var(--border)')+';color:'+(hasFinancial?'var(--green)':'var(--ink-muted)')+'">'+(hasFinancial?'已录入':'未录入')+'</span></td><td><button class="btn-icon" onclick="closeModal();editMatchFinancial(\''+m.id+'\')" title="编辑">✏️</button>'+(hasFinancial?'<button class="btn-icon" onclick="deleteMatchFinancial(\''+m.id+'\')" title="删除">🗑️</button>':'')+'</td></tr>';
+  });
+  html += '</tbody></table></div><div style="display:flex;justify-content:flex-end;margin-top:24px"><button class="btn btn-green" onclick="closeModal()">关闭</button></div></div>';
+  showModal(html);
 }
 
 function deleteMatchFinancial(matchId) {
@@ -5205,7 +4812,6 @@ function deleteMatchFinancial(matchId) {
   manageMatchFinancials();
   showToast('✅ 已删除');
 }
-
 </script>
 </body>
 </html>
