@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛事发布诊断工具</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+.container {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+h1 { color: #1a5c3a; margin-bottom: 10px; }
+.section {
+  margin: 25px 0;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+.section h2 { color: #2d7a52; margin-top: 0; }
+button {
+  background: #1a5c3a;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin: 5px;
+}
+button:hover { background: #2d7a52; }
+.match-item {
+  padding: 15px;
+  margin: 10px 0;
+  background: white;
+  border-radius: 6px;
+  border-left: 4px solid #ddd;
+}
+.match-item.published { border-left-color: #1a5c3a; }
+.match-item.unpublished { border-left-color: #c0392b; }
+.match-title { font-weight: bold; font-size: 16px; }
+.match-meta { color: #666; font-size: 13px; margin-top: 5px; }
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 10px;
+}
+.badge-green { background: #d4edda; color: #155724; }
+.badge-red { background: #f8d7da; color: #721c24; }
+.info { padding: 15px; background: #e8f3ed; border-left: 4px solid #1a5c3a; margin: 15px 0; }
+.warning { padding: 15px; background: #fff3cd; border-left: 4px solid #f39c12; margin: 15px 0; }
+.btn-publish { background: #27ae60; }
+.btn-unpublish { background: #c0392b; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔍 赛事发布诊断工具</h1>
+  <p style="color:#666">检查并修复赛事发布状态</p>
+  
+  <div class="section">
+    <h2>📊 当前状态</h2>
+    <div id="status">
+      <button onclick="diagnose()">🔍 开始诊断</button>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>📝 所有赛事列表</h2>
+    <div id="matchList"></div>
+  </div>
+  
+  <div class="section">
+    <h2>⚡ 快速操作</h2>
+    <div class="info">批量发布所有赛事到官网</div>
+    <button onclick="publishAll()">📢 发布所有赛事</button>
+    <button onclick="unpublishAll()">📥 取消发布所有赛事</button>
+    <br><br>
+    <button onclick="publish2025YearEnd()">🎯 专门发布2025年终赛</button>
+  </div>
+</div>
+
+<script>
+function diagnose() {
+  const statusDiv = document.getElementById('status');
+  const matchListDiv = document.getElementById('matchList');
+  
+  const saved = localStorage.getItem('ceibs_golf_data');
+  if(!saved) {
+    statusDiv.innerHTML = '<div class="warning">⚠️ 未找到数据</div>';
+    return;
+  }
+  
+  const data = JSON.parse(saved);
+  const matches = data.matches || [];
+  
+  let html = '<div class="info">';
+  html += `✅ 找到 ${matches.length} 场赛事<br>`;
+  
+  const publishedCount = matches.filter(m => m.published).length;
+  html += `📢 已发布: ${publishedCount} 场<br>`;
+  html += `📥 未发布: ${matches.length - publishedCount} 场`;
+  html += '</div>';
+  
+  // 检查2025年终赛
+  const yearEnd = matches.find(m => m.name && (m.name.includes('2025年终') || m.name.includes('2025') && m.name.includes('年终')));
+  if(yearEnd) {
+    if(yearEnd.published) {
+      html += '<div class="info">✅ 2025年终赛已发布</div>';
+    } else {
+      html += '<div class="warning">⚠️ 2025年终赛存在但未发布！<button onclick="publishMatch('+yearEnd.id+')" style="margin-left:10px">立即发布</button></div>';
+    }
+  } else {
+    html += '<div class="warning">⚠️ 未找到2025年终赛数据</div>';
+  }
+  
+  statusDiv.innerHTML = html;
+  
+  // 显示所有赛事
+  let listHtml = '';
+  matches.forEach((m, i) => {
+    const isPublished = m.published;
+    listHtml += `
+      <div class="match-item ${isPublished ? 'published' : 'unpublished'}">
+        <div class="match-title">
+          ${i+1}. ${m.name}
+          <span class="badge ${isPublished ? 'badge-green' : 'badge-red'}">
+            ${isPublished ? '✓ 已发布' : '✗ 未发布'}
+          </span>
+        </div>
+        <div class="match-meta">
+          📅 ${m.date} | 📍 ${m.course || '未填写'} | 👥 ${m.scores?.length || 0}人
+        </div>
+        <div style="margin-top:10px">
+          ${isPublished 
+            ? '<button class="btn-unpublish" onclick="unpublishMatch('+m.id+')">取消发布</button>'
+            : '<button class="btn-publish" onclick="publishMatch('+m.id+')">发布</button>'}
+        </div>
+      </div>
+    `;
+  });
+  
+  matchListDiv.innerHTML = listHtml;
+}
+
+function publishMatch(matchId) {
+  const saved = localStorage.getItem('ceibs_golf_data');
+  const data = JSON.parse(saved);
+  const match = data.matches.find(m => m.id == matchId);
+  
+  if(!match) {
+    alert('未找到赛事');
+    return;
+  }
+  
+  match.published = true;
+  localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+  alert('✅ 已发布: ' + match.name + '\n\n请刷新官网页面查看！');
+  diagnose();
+}
+
+function unpublishMatch(matchId) {
+  const saved = localStorage.getItem('ceibs_golf_data');
+  const data = JSON.parse(saved);
+  const match = data.matches.find(m => m.id == matchId);
+  
+  if(!match) {
+    alert('未找到赛事');
+    return;
+  }
+  
+  match.published = false;
+  localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+  alert('✅ 已取消发布: ' + match.name);
+  diagnose();
+}
+
+function publishAll() {
+  if(!confirm('确定要发布所有赛事吗？')) return;
+  
+  const saved = localStorage.getItem('ceibs_golf_data');
+  const data = JSON.parse(saved);
+  
+  data.matches.forEach(m => {
+    m.published = true;
+  });
+  
+  localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+  alert('✅ 已发布所有 ' + data.matches.length + ' 场赛事！\n\n请刷新官网页面查看！');
+  diagnose();
+}
+
+function unpublishAll() {
+  if(!confirm('确定要取消发布所有赛事吗？')) return;
+  
+  const saved = localStorage.getItem('ceibs_golf_data');
+  const data = JSON.parse(saved);
+  
+  data.matches.forEach(m => {
+    m.published = false;
+  });
+  
+  localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+  alert('✅ 已取消发布所有赛事');
+  diagnose();
+}
+
+function publish2025YearEnd() {
+  const saved = localStorage.getItem('ceibs_golf_data');
+  const data = JSON.parse(saved);
+  
+  const yearEnd = data.matches.find(m => 
+    m.name && (
+      m.name.includes('2025年终') || 
+      (m.name.includes('2025') && m.name.includes('年终'))
+    )
+  );
+  
+  if(!yearEnd) {
+    alert('❌ 未找到2025年终赛\n\n请确认：\n1. 已经在"智能录入"页面上传Excel\n2. 赛事名称包含"2025年终"');
+    return;
+  }
+  
+  yearEnd.published = true;
+  localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+  alert('✅ 2025年终赛已发布！\n\n赛事名称: ' + yearEnd.name + '\n日期: ' + yearEnd.date + '\n\n请刷新官网页面查看！');
+  diagnose();
+}
+
+// 页面加载时自动诊断
+window.onload = function() {
+  diagnose();
+};
+</script>
+</body>
+</html>
