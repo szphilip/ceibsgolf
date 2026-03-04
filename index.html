@@ -1185,6 +1185,16 @@ tr:hover td{background:rgba(26,92,58,.02)}
     <p class="section-desc">汇聚中欧精英，共享高尔夫的魅力与友谊</p>
   </div>
   <div class="members-grid" id="members-grid"></div>
+  
+  <!-- Hall of Fame -->
+  <div id="hall-of-fame-section" style="display:none;margin-top:60px">
+    <div class="section-header">
+      <div class="section-tag" style="background:#f39c12">Hall of Fame</div>
+      <h2 class="section-title serif">名人堂</h2>
+      <p class="section-desc">🏛️ 致敬那些为球队发展做出贡献的前队员们</p>
+    </div>
+    <div class="members-grid" id="hall-of-fame-grid"></div>
+  </div>
 </section>
 
 <!-- Gallery -->
@@ -1646,12 +1656,17 @@ function animateCounters(){
   const foundedYear = 2017;
   const years = currentYear - foundedYear;
   
+  // 只统计正式队员(不包括名人堂和已退出)
+  const activeMembers = STORE.members.filter(m => m.status !== 'hall_of_fame' && m.status !== 'inactive').length;
+  
   document.getElementById('stat-years').textContent = years;
-  document.getElementById('stat-members').textContent = STORE.members.length > 0 ? STORE.members.length : '50+';
+  document.getElementById('stat-members').textContent = activeMembers > 0 ? activeMembers : '50+';
 }
 
 function renderPublicMembers(){
-  const grid = document.getElementById('members-grid');
+  // 分离正式队员和名人堂队员
+  const activeMembers = STORE.members.filter(m => m.status !== 'hall_of_fame' && m.status !== 'inactive');
+  const hallOfFameMembers = STORE.members.filter(m => m.status === 'hall_of_fame');
   
   // 根据差点确定技术等级
   function getSkillLevel(handicap){
@@ -1665,20 +1680,38 @@ function renderPublicMembers(){
     }
   }
   
-  grid.innerHTML = STORE.members.map(m=>{
+  // 渲染队员卡片
+  function renderMemberCard(m, isHallOfFame = false){
     const level = getSkillLevel(m.handicap);
     return `
     <div class="member-card">
-      <div class="member-avatar">${m.name.charAt(0)}</div>
+      <div class="member-avatar" style="${isHallOfFame ? 'background:linear-gradient(135deg,#f39c12,#e67e22)' : ''}">${m.name.charAt(0)}</div>
       <div class="member-name">${m.name}</div>
       ${m.role?`<div class="member-role">${m.role}</div>`:''}
+      ${isHallOfFame ? `<div class="member-role" style="background:#fff3cd;color:#f39c12">🏛️ 名人堂</div>` : ''}
       <div class="member-hcp">差点 ${m.handicap}</div>
-      <div class="member-skill-badge" style="background:${level.color};color:#fff;font-size:11px;padding:4px 10px;border-radius:12px;margin-top:6px;font-weight:600;display:inline-flex;align-items:center;gap:4px">
+      ${!isHallOfFame ? `<div class="member-skill-badge" style="background:${level.color};color:#fff;font-size:11px;padding:4px 10px;border-radius:12px;margin-top:6px;font-weight:600;display:inline-flex;align-items:center;gap:4px">
         <span>${level.emoji}</span>
         <span>${level.label}</span>
-      </div>
+      </div>` : ''}
     </div>
-  `}).join('');
+  `;
+  }
+  
+  // 渲染正式队员
+  const grid = document.getElementById('members-grid');
+  grid.innerHTML = activeMembers.map(m => renderMemberCard(m, false)).join('');
+  
+  // 渲染名人堂队员
+  const hallSection = document.getElementById('hall-of-fame-section');
+  const hallGrid = document.getElementById('hall-of-fame-grid');
+  
+  if(hallOfFameMembers.length > 0){
+    hallSection.style.display = 'block';
+    hallGrid.innerHTML = hallOfFameMembers.map(m => renderMemberCard(m, true)).join('');
+  } else {
+    hallSection.style.display = 'none';
+  }
 }
 
 function renderPublicMatches(){
@@ -2227,13 +2260,18 @@ const pages = {
   dashboard(){
     const totalMatches = STORE.matches.length;
     
-    // 统计技术等级
-    const experts = STORE.members.filter(m => parseInt(m.handicap) <= 10).length;
-    const intermediate = STORE.members.filter(m => {
+    // 统计队员类型
+    const activeMembers = STORE.members.filter(m => m.status !== 'hall_of_fame' && m.status !== 'inactive').length;
+    const hallOfFameMembers = STORE.members.filter(m => m.status === 'hall_of_fame').length;
+    
+    // 统计技术等级(只统计正式队员)
+    const activeMembersList = STORE.members.filter(m => m.status !== 'hall_of_fame' && m.status !== 'inactive');
+    const experts = activeMembersList.filter(m => parseInt(m.handicap) <= 10).length;
+    const intermediate = activeMembersList.filter(m => {
       const hcp = parseInt(m.handicap);
       return hcp > 10 && hcp <= 27;
     }).length;
-    const beginners = STORE.members.filter(m => parseInt(m.handicap) > 27).length;
+    const beginners = activeMembersList.filter(m => parseInt(m.handicap) > 27).length;
     
     return `
     <div class="fade-in">
@@ -2242,13 +2280,14 @@ const pages = {
         <div class="page-desc">球队管理概览</div>
       </div>
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-box-num serif">${STORE.members.length}</div><div class="stat-box-label">正式队员</div></div>
+        <div class="stat-box"><div class="stat-box-num serif">${activeMembers}</div><div class="stat-box-label">正式队员</div></div>
         <div class="stat-box" style="border-left-color:#c0392b"><div class="stat-box-num serif" style="color:#c0392b">${experts}</div><div class="stat-box-label">🏆 高手</div></div>
         <div class="stat-box" style="border-left-color:#f39c12"><div class="stat-box-num serif" style="color:#f39c12">${intermediate}</div><div class="stat-box-label">⚡ 中流</div></div>
         <div class="stat-box" style="border-left-color:#16a085"><div class="stat-box-num serif" style="color:#16a085">${beginners}</div><div class="stat-box-label">🚲 三轮车</div></div>
       </div>
       <div class="stats-row" style="margin-top:16px">
         <div class="stat-box"><div class="stat-box-num serif">${totalMatches}</div><div class="stat-box-label">已录入赛事</div></div>
+        <div class="stat-box" style="border-left-color:#f39c12"><div class="stat-box-num serif" style="color:#f39c12">${hallOfFameMembers}</div><div class="stat-box-label">🏛️ 名人堂</div></div>
         <div class="stat-box"><div class="stat-box-num serif">${STORE.courses.length}</div><div class="stat-box-label">球场足迹</div></div>
         <div class="stat-box" style="border-left-color:var(--gold)"><div class="stat-box-num serif" style="color:var(--gold)">200</div><div class="stat-box-label">球场目标</div></div>
       </div>
@@ -2691,15 +2730,28 @@ function renderMembersTable(list){
     }
   }
   
+  // 根据状态返回显示文本和颜色
+  function getStatusDisplay(status){
+    if(status === 'hall_of_fame') {
+      return { text: '名人堂队员', color: '#f39c12', icon: '🏛️' };
+    } else if(status === 'inactive') {
+      return { text: '已退出', color: '#95a5a6', icon: '⏸️' };
+    } else {
+      return { text: '正式队员', color: 'var(--green)', icon: '✓' };
+    }
+  }
+  
   document.getElementById('members-tbody').innerHTML = list.map(m=>{
     const isNewOrZeroHandicap = m.handicap === 0 || m.handicap === '0';
     const level = getSkillLevel(m.handicap);
+    const statusInfo = getStatusDisplay(m.status);
     
     return `
     <tr id="mrow-${m.id}" ${isNewOrZeroHandicap ? 'style="background:#fff9e6"' : ''}>
       <td>
         <strong>${m.name}</strong>
         ${isNewOrZeroHandicap ? ' <span class="badge" style="background:#f39c12;color:#fff">待完善</span>' : ''}
+        ${m.status === 'hall_of_fame' ? ' <span class="badge" style="background:#f39c12;color:#fff">🏛️</span>' : ''}
       </td>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
@@ -2712,7 +2764,7 @@ function renderMembersTable(list){
       </td>
       <td>${m.joinDate||'-'}</td>
       <td>${m.role?`<span class="badge badge-green">${m.role}</span>`:'-'}</td>
-      <td><span class="badge badge-green">正式队员</span></td>
+      <td><span class="badge" style="background:${statusInfo.color};color:#fff">${statusInfo.icon} ${statusInfo.text}</span></td>
       <td>
         <button class="btn btn-ghost btn-sm" onclick="editMember(${m.id})">编辑</button>
         <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteMember(${m.id})">删除</button>
@@ -2784,13 +2836,73 @@ function deleteMember(id){
 function editMember(id){
   const m = STORE.members.find(x=>x.id===id);
   if(!m) return;
-  const newHcp = prompt(`修改 ${m.name} 的差点（当前：${m.handicap}）`);
-  if(newHcp!==null&&!isNaN(parseFloat(newHcp))){
-    m.handicap = parseFloat(newHcp);
-    saveStore();
-    initMembersPage();
-    showToast('差点更新成功');
+  
+  // 创建编辑对话框
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+  
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;max-width:500px;width:100%" onclick="event.stopPropagation()">
+      <h3 style="margin:0 0 20px 0;font-size:18px;font-weight:700">编辑队员: ${m.name}</h3>
+      <div style="display:grid;gap:16px">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)">差点</label>
+          <input type="number" id="edit-hcp" value="${m.handicap}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)">职务</label>
+          <input type="text" id="edit-role" value="${m.role||''}" placeholder="如：队长" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)">状态</label>
+          <select id="edit-status" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+            <option value="active" ${(!m.status || m.status==='active')?'selected':''}>正式队员</option>
+            <option value="hall_of_fame" ${m.status==='hall_of_fame'?'selected':''}>名人堂队员</option>
+            <option value="inactive" ${m.status==='inactive'?'selected':''}>已退出</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:14px">取消</button>
+        <button onclick="saveMemberEdit(${id})" style="padding:8px 16px;border:none;background:var(--green);color:#fff;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">保存</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  document.getElementById('edit-hcp').focus();
+}
+
+function saveMemberEdit(id){
+  const m = STORE.members.find(x=>x.id===id);
+  if(!m) return;
+  
+  const newHcp = parseFloat(document.getElementById('edit-hcp').value);
+  const newRole = document.getElementById('edit-role').value.trim();
+  const newStatus = document.getElementById('edit-status').value;
+  
+  if(isNaN(newHcp)){
+    alert('请输入有效的差点数字');
+    return;
   }
+  
+  m.handicap = newHcp;
+  m.role = newRole || undefined;
+  m.status = newStatus;
+  
+  saveStore();
+  document.querySelector('div[style*="fixed"]').remove();
+  initMembersPage();
+  
+  if(newStatus === 'hall_of_fame') {
+    showToast(`${m.name} 已加入名人堂`, 'success');
+  } else {
+    showToast('队员信息更新成功', 'success');
+  }
+  
+  // 刷新公开页面
+  if(typeof renderPublicMembers === 'function') renderPublicMembers();
 }
 
 // ═══════════════════════════════════════════
