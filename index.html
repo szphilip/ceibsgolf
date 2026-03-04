@@ -1391,6 +1391,13 @@ tr:hover td{background:rgba(26,92,58,.02)}
     <div class="login-error" id="login-err">密码错误，请重试</div>
     <button class="login-btn" onclick="doLogin()">登 录</button>
     <div class="login-hint">仅限队长、副队长、财务长等管理员</div>
+    <div style="margin-top:16px;padding:12px;background:#e8f5e9;border-radius:6px;font-size:12px;color:#2d7a52;line-height:1.6">
+      <div style="font-weight:700;margin-bottom:6px">💡 新功能提示:</div>
+      <div>• <strong>赛事管理</strong>: 可以删除重复的赛事记录</div>
+      <div>• <strong>自动添加队员</strong>: Excel导入时自动识别新队员</div>
+      <div>• <strong>技术等级</strong>: 高手/中流/三轮车标记</div>
+      <div style="margin-top:6px;color:#16a085">默认密码: ceibs2017</div>
+    </div>
   </div>
 </div>
 
@@ -1433,6 +1440,7 @@ tr:hover td{background:rgba(26,92,58,.02)}
       </button>
       <button class="sidebar-item" onclick="switchPage('matches-manage',this)">
         <span class="sidebar-icon">📊</span>赛事管理
+        <span class="sidebar-badge" style="background:#c0392b">NEW</span>
       </button>
       <button class="sidebar-item" onclick="switchPage('finance',this)">
         <span class="sidebar-icon">💰</span>财务管理
@@ -2192,8 +2200,33 @@ const pages = {
           <button class="btn btn-ghost" onclick="switchPage('members',document.querySelectorAll('.sidebar-item')[1])">👥 管理队员信息</button>
         </div>
       </div>
+      
+      <div class="card" style="background:#fff9e6;border:2px solid #f39c12">
+        <div class="card-title" style="color:#f39c12">
+          <span class="card-icon">📖</span>
+          <span>重要功能说明</span>
+        </div>
+        <div style="display:grid;gap:12px;font-size:13px;line-height:1.6">
+          <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #c0392b">
+            <div style="font-weight:700;color:#c0392b;margin-bottom:4px">📊 赛事管理 (新增)</div>
+            <div style="color:var(--ink-muted)">位置: 左侧菜单 "赛事管理"</div>
+            <div>功能: 查看、编辑、删除所有赛事记录,包括删除重复的赛事</div>
+          </div>
+          <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #16a085">
+            <div style="font-weight:700;color:#16a085;margin-bottom:4px">👥 队员自动添加 (新增)</div>
+            <div style="color:var(--ink-muted)">位置: 智能录入 > Excel导入</div>
+            <div>功能: Excel中的新队员会自动添加到队员列表,只需补充差点即可</div>
+          </div>
+          <div style="padding:12px;background:#fff;border-radius:6px;border-left:3px solid #f39c12">
+            <div style="font-weight:700;color:#f39c12;margin-bottom:4px">🏆 技术等级标记 (新增)</div>
+            <div style="color:var(--ink-muted)">位置: 官网队员展示 & 队员管理</div>
+            <div>等级: 高手(≤10) | 中流(11-27) | 三轮车(≥28)</div>
+          </div>
+        </div>
+      </div>
+      
       <div class="card" style="background:linear-gradient(135deg,var(--green),var(--green-mid));color:#fff;border:none">
-        <div style="font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;margin-bottom:16px">V3.0 新功能</div>
+        <div style="font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;margin-bottom:16px">V3.0 核心更新</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <div style="background:rgba(255,255,255,.12);padding:16px;border-radius:8px">
             <div style="font-size:22px;margin-bottom:8px">🏌️</div>
@@ -2201,9 +2234,9 @@ const pages = {
             <div style="font-size:12px;opacity:.8">支持每洞独立标准杆,精确计算小鸟老鹰</div>
           </div>
           <div style="background:rgba(255,255,255,.12);padding:16px;border-radius:8px">
-            <div style="font-size:22px;margin-bottom:8px">👥</div>
-            <div style="font-weight:700;margin-bottom:4px">队员自动导入</div>
-            <div style="font-size:12px;opacity:.8">Excel成绩单中的队员自动添加到系统</div>
+            <div style="font-size:22px;margin-bottom:8px">📊</div>
+            <div style="font-weight:700;margin-bottom:4px">赛事全生命周期管理</div>
+            <div style="font-size:12px;opacity:.8">录入、计算、发布、编辑、删除一站式管理</div>
           </div>
         </div>
       </div>
@@ -2303,6 +2336,10 @@ const pages = {
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">📥</span>导入成绩</div>
+        <div class="notice notice-info" style="margin-bottom:12px">
+          <span>💡</span>
+          <span><strong>自动添加队员功能:</strong> Excel中的新队员会自动添加到"队员管理",您只需后续补充差点信息即可</span>
+        </div>
         <div class="import-tabs">
           <button class="import-tab active" onclick="switchTab('excel',this)">📊 Excel导入</button>
           <button class="import-tab" onclick="switchTab('image',this)">📸 图片识别</button>
