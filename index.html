@@ -1557,6 +1557,9 @@ function saveStore(){
 //  PUBLIC SITE INIT
 // ═══════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', ()=>{
+  // 首次加载时从历史赛事中提取所有队员
+  syncMembersFromMatches();
+  
   renderPublicMembers();
   renderPublicMatches();
   renderPublicGallery();
@@ -1580,6 +1583,63 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // 首次加载检查
   console.log('[INFO] 如果看不到赛事数据，请在控制台执行: resetAllData()');
 });
+
+// 从历史赛事中同步队员到队员列表
+function syncMembersFromMatches(){
+  if(!STORE.matches || STORE.matches.length === 0) {
+    console.log('[队员同步] 没有历史赛事数据');
+    return;
+  }
+  
+  let addedCount = 0;
+  const allPlayerNames = new Set();
+  
+  // 收集所有赛事中出现过的队员姓名
+  STORE.matches.forEach(match => {
+    if(match.scores && match.scores.length > 0) {
+      match.scores.forEach(score => {
+        if(score.playerName) {
+          allPlayerNames.add(score.playerName.trim());
+        }
+      });
+    }
+  });
+  
+  console.log('[队员同步] 从历史赛事中发现', allPlayerNames.size, '位不同的队员');
+  
+  // 检查每个队员是否已在队员列表中,如果不在则添加
+  allPlayerNames.forEach(playerName => {
+    const exists = STORE.members.find(m => 
+      m.name === playerName || 
+      m.name.includes(playerName) || 
+      playerName.includes(m.name)
+    );
+    
+    if(!exists) {
+      // 添加新队员
+      const newMemberId = Date.now() + Math.floor(Math.random() * 10000);
+      const newMember = {
+        id: newMemberId,
+        name: playerName,
+        handicap: 0, // 默认差点0
+        joinDate: new Date().toISOString().split('T')[0],
+        role: '队员',
+        status: 'active'
+      };
+      STORE.members.push(newMember);
+      addedCount++;
+      console.log('[队员同步] 添加队员:', playerName);
+    }
+  });
+  
+  if(addedCount > 0) {
+    saveStore();
+    console.log('[队员同步] 共添加', addedCount, '位新队员');
+    console.log('[队员同步] 当前队员总数:', STORE.members.length);
+  } else {
+    console.log('[队员同步] 所有队员已存在,无需添加');
+  }
+}
 
 function animateCounters(){
   const currentYear = new Date().getFullYear();
@@ -2248,8 +2308,21 @@ const pages = {
     <div class="fade-in">
       <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
         <div><div class="page-title serif">队员管理</div><div class="page-desc">管理球队成员信息</div></div>
-        <button class="btn btn-green" onclick="showAddMember()">＋ 添加队员</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="syncAndRefreshMembers()" title="从历史赛事中同步所有队员">🔄 同步赛事队员</button>
+          <button class="btn btn-green" onclick="showAddMember()">＋ 添加队员</button>
+        </div>
       </div>
+      
+      <div class="notice notice-info" style="margin-bottom:16px">
+        <span>💡</span>
+        <span>
+          <strong>自动同步功能:</strong> 
+          系统会自动从历史赛事中提取所有参赛队员。
+          如果队员列表不完整,点击右上角"🔄 同步赛事队员"按钮手动同步。
+        </span>
+      </div>
+      
       <div class="card" id="add-member-card" style="display:none">
         <div class="card-title"><span class="card-icon">➕</span>添加新队员</div>
         <div class="form-grid">
@@ -2671,6 +2744,21 @@ function showAddMember(){
   const card = document.getElementById('add-member-card');
   card.style.display = card.style.display==='none'?'block':'none';
 }
+// 手动同步并刷新队员列表
+function syncAndRefreshMembers(){
+  const beforeCount = STORE.members.length;
+  syncMembersFromMatches();
+  const afterCount = STORE.members.length;
+  const added = afterCount - beforeCount;
+  
+  if(added > 0) {
+    showToast(`从历史赛事中同步了${added}位新队员`, 'success');
+    renderMembersTable(STORE.members);
+  } else {
+    showToast('所有队员已是最新,无需同步', 'success');
+  }
+}
+
 function addMember(){
   const name=document.getElementById('m-name').value.trim();
   const hcp=parseFloat(document.getElementById('m-hcp').value);
