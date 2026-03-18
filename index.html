@@ -1377,6 +1377,15 @@ tr:hover td{background:rgba(26,92,58,.02)}
   </p>
   <div class="bottom">
     © 2017–2026 中欧苏州高尔夫球队 · 版权所有
+    <br>
+    <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,.5)">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,.5);text-decoration:none;display:inline-block;margin-right:12px">
+        苏ICP备2026013076号
+      </a>
+      <a href="http://www.beian.gov.cn/portal/registerSystemInfo" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,.5);text-decoration:none;display:inline-block">
+        公安备案审核中
+      </a>
+    </div>
   </div>
 </footer>
 
@@ -1566,6 +1575,143 @@ try {
   }
 } catch(e){console.error('localStorage load error:', e);}
 
+// ═══════════════════════════════════════════
+//  SERVER STORAGE INTEGRATION
+// ═══════════════════════════════════════════
+
+const SERVER_CONFIG = {
+  apiUrl: '/api.php',
+  password: 'ceibsgolf2024', // 请修改为你设置的密码
+  autoSync: true,
+  syncInterval: 5000 // 5秒后同步到服务器
+};
+
+let syncTimeout = null;
+
+// 保存到localStorage
+function saveStore(){
+  try{
+    const data = {
+      members: STORE.members,
+      matches: STORE.matches,
+      courses: STORE.courses,
+      gallery: STORE.gallery,
+      finance: STORE.finance
+    };
+    
+    localStorage.setItem('ceibs_golf_data', JSON.stringify(data));
+    console.log('✅ 数据已保存到localStorage');
+    
+    // 自动同步到服务器
+    if(SERVER_CONFIG.autoSync) {
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        syncToServer(data);
+      }, SERVER_CONFIG.syncInterval);
+    }
+  } catch(e) {
+    console.error('localStorage save error:', e);
+  }
+}
+
+// 同步数据到服务器
+function syncToServer(data) {
+  const payload = {
+    ...data,
+    password: SERVER_CONFIG.password,
+    timestamp: Date.now()
+  };
+  
+  fetch(SERVER_CONFIG.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if(result.success) {
+      console.log('✅ 数据已同步到服务器', new Date().toLocaleString());
+      showSyncStatus('success');
+    } else {
+      console.error('❌ 服务器同步失败:', result.message);
+      showSyncStatus('error', result.message);
+    }
+  })
+  .catch(error => {
+    console.error('❌ 服务器同步失败:', error);
+    showSyncStatus('error', '网络错误');
+  });
+}
+
+// 从服务器加载数据
+function loadFromServer() {
+  console.log('🔄 从服务器加载数据...');
+  
+  fetch(SERVER_CONFIG.apiUrl + '?action=get')
+    .then(response => response.json())
+    .then(result => {
+      if(result.success && result.data) {
+        const serverData = result.data;
+        const localData = localStorage.getItem('ceibs_golf_data');
+        
+        // 比较本地和服务器数据
+        if(!localData) {
+          // 本地没有数据，使用服务器数据
+          console.log('✅ 从服务器恢复数据');
+          localStorage.setItem('ceibs_golf_data', JSON.stringify(serverData));
+          location.reload();
+        } else {
+          // 本地有数据，检查哪个更新
+          const localTimestamp = JSON.parse(localData).timestamp || 0;
+          const serverTimestamp = serverData.timestamp || result.timestamp || 0;
+          
+          if(serverTimestamp > localTimestamp) {
+            console.log('⚠️ 服务器数据更新，正在同步...');
+            if(confirm('检测到服务器有更新的数据，是否使用服务器数据？')) {
+              localStorage.setItem('ceibs_golf_data', JSON.stringify(serverData));
+              location.reload();
+            }
+          } else {
+            console.log('✅ 本地数据是最新的');
+          }
+        }
+      } else {
+        console.log('ℹ️ 服务器暂无数据');
+      }
+    })
+    .catch(error => {
+      console.error('❌ 从服务器加载失败:', error);
+    });
+}
+
+// 显示同步状态
+function showSyncStatus(status, message = '') {
+  let indicator = document.getElementById('sync-indicator');
+  if(!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'sync-indicator';
+    indicator.style.cssText = 'position:fixed;bottom:80px;right:32px;z-index:9998;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;transition:opacity .3s;';
+    document.body.appendChild(indicator);
+  }
+  
+  if(status === 'success') {
+    indicator.style.background = '#48bb78';
+    indicator.style.color = 'white';
+    indicator.textContent = '☁️ 已同步';
+  } else if(status === 'error') {
+    indicator.style.background = '#f56565';
+    indicator.style.color = 'white';
+    indicator.textContent = '⚠️ 同步失败' + (message ? ': ' + message : '');
+  }
+  
+  indicator.style.opacity = '1';
+  setTimeout(() => {
+    indicator.style.opacity = '0';
+  }, 3000);
+}
+
 function saveStore(){
   try{localStorage.setItem('ceibs_golf_data',JSON.stringify({members:STORE.members,matches:STORE.matches,courses:STORE.courses,gallery:STORE.gallery,finance:STORE.finance}));}catch(e){console.error('localStorage save error:', e);}
 }
@@ -1574,6 +1720,8 @@ function saveStore(){
 //  PUBLIC SITE INIT
 // ═══════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', ()=>{
+  // 首先尝试从服务器加载数据
+  loadFromServer();
   // 首次加载时从历史赛事中提取所有队员
   syncMembersFromMatches();
   
@@ -2658,9 +2806,13 @@ const pages = {
 
   finance(){
     const f = STORE.finance;
+    console.log('[Finance] Rendering finance page...');
+    console.log('[Finance] editBalance function exists:', typeof editBalance);
+    console.log('[Finance] addMonthlyRecord function exists:', typeof addMonthlyRecord);
+    
     let html = '<div class="fade-in"><div class="page-header"><div class="page-title serif">财务管理</div><div class="page-desc">球队财务收支统计与管理</div></div>';
-    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">💰</span>余额管理</div><div class="stats-row" style="grid-template-columns:repeat(2,1fr)"><div class="stat-box" style="border-left-color:#c9a84c"><div class="stat-box-num serif">¥'+f.balance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">本次余额</div><button class="btn btn-ghost btn-sm" style="margin-top:8px;font-size:12px" onclick="editBalance()">✏️ 编辑余额</button></div><div class="stat-box" style="border-left-color:var(--ink-muted)"><div class="stat-box-num serif" style="color:var(--ink-muted)">¥'+f.lastBalance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">上次余额</div></div></div></div>';
-    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">📅</span>本月球队经费收支情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="addMonthlyRecord()">+ 添加月度记录</button></div>';
+    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">💰</span>余额管理</div><div class="stats-row" style="grid-template-columns:repeat(2,1fr)"><div class="stat-box" style="border-left-color:#c9a84c"><div class="stat-box-num serif">¥'+f.balance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">本次余额</div><button class="btn btn-ghost btn-sm" style="margin-top:8px;font-size:12px" onclick="console.log(\'Button clicked!\'); if(typeof editBalance===\'function\'){editBalance()}else{alert(\'editBalance函数不存在！\')}">✏️ 编辑余额</button></div><div class="stat-box" style="border-left-color:var(--ink-muted)"><div class="stat-box-num serif" style="color:var(--ink-muted)">¥'+f.lastBalance.toLocaleString('zh',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="stat-box-label">上次余额</div></div></div></div>';
+    html += '<div class="card" style="margin-bottom:24px"><div class="card-title"><span class="card-icon">📅</span>本月球队经费收支情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="console.log(\'Add record clicked!\'); if(typeof addMonthlyRecord===\'function\'){addMonthlyRecord()}else{alert(\'addMonthlyRecord函数不存在！\')}">+ 添加月度记录</button></div>';
     if(f.monthlyRecords.length === 0) {
       html += '<div class="notice notice-info"><span>💡</span><span>暂无月度财务记录，点击"添加月度记录"开始管理财务</span></div>';
     } else {
@@ -2672,7 +2824,7 @@ const pages = {
       html += '</tbody></table></div>';
     }
     html += '</div>';
-    html += '<div class="card"><div class="card-title"><span class="card-icon">🏆</span>本场比赛奖罚情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="manageMatchFinancials()">管理赛事财务</button></div>';
+    html += '<div class="card"><div class="card-title"><span class="card-icon">🏆</span>本场比赛奖罚情况<button class="btn btn-green btn-sm" style="margin-left:auto;font-size:12px" onclick="console.log(\'Manage financials clicked!\'); if(typeof manageMatchFinancials===\'function\'){manageMatchFinancials()}else{alert(\'manageMatchFinancials函数不存在！\')}">管理赛事财务</button></div>';
     if(STORE.matches.length === 0) {
       html += '<div class="notice notice-warn"><span>⚠️</span><span>暂无赛事数据</span></div>';
     } else {
@@ -2683,6 +2835,7 @@ const pages = {
       html += '</select></div><div id="match-financial-display"></div>';
     }
     html += '</div></div>';
+    console.log('[Finance] HTML generated, length:', html.length);
     return html;
   },
 
